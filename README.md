@@ -220,6 +220,8 @@ const csv = new Csv(csvData, {
 ### Strict Column Validation
 
 ```typescript
+import { Csv, TooManyColumnsError, TooFewColumnsError } from 'csv-stream-lite'
+
 const csv = new Csv(csvData, {
     headers: ['name', 'age', 'city'],
     strictColumns: true, // Throws error if column count doesn't match
