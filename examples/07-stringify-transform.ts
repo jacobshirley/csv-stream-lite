@@ -8,9 +8,16 @@ const data = [
 ]
 
 const csvStringifier = Csv.stringifier(data, {
-    transform: (row: { name: string; age: number; city: string }) => ({
+    transform: (row) => ({
         fullName: row.name.toUpperCase(),
         ageInFiveYears: row.age + 5,
         city: row.city,
+        cityWithCountry: `${row.city}, USA`,
     }),
 })
+
+console.log(csvStringifier.toString())
+// Expected output:
+// fullName,ageInFiveYears,city,cityWithCountry
+// ALICE,35,New York,"New York, USA"
+// BOB,30,Los Angeles,"Los Angeles, USA"
