@@ -1,0 +1,71 @@
+{
+    "name": "csv-stream-lite",
+    "version": "1.0.0",
+    "description": "A lightweight, memory-efficient, zero-dependency streaming JSON parser and stringifier for JavaScript and TypeScript. It works in both Node.js and browser environments.",
+    "main": "dist/index.js",
+    "type": "module",
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/jacobshirley/csv-stream-lite.git"
+    },
+    "homepage": "https://jacobshirley.github.io/csv-stream-lite/v1",
+    "bugs": {
+        "url": "https://github.com/jacobshirley/csv-stream-lite/issues"
+    },
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./*": {
+            "types": "./dist/*.d.ts",
+            "default": "./dist/*"
+        }
+    },
+    "scripts": {
+        "test:unit": "vitest run test/unit",
+        "test": "vitest run",
+        "compile": "pnpm compile:validate && tsc -p tsconfig.prod.json",
+        "compile:validate": "tsc -p tsconfig.json --noEmit",
+        "watch": "tsc -watch -p tsconfig.prod.json",
+        "watch:all": "tsc -watch -p tsconfig.json",
+        "prepack": "cp ../../README.md . && cp ../../EXAMPLES.md ."
+    },
+    "keywords": [
+        "json",
+        "stream",
+        "streaming",
+        "parser",
+        "stringify",
+        "parse",
+        "incremental",
+        "async",
+        "memory-efficient",
+        "low-memory",
+        "large-files",
+        "json-parser",
+        "csv-stream",
+        "streaming-json",
+        "lightweight",
+        "zero-dependencies",
+        "typescript",
+        "browser",
+        "nodejs"
+    ],
+    "author": "Jacob Shirley",
+    "license": "MIT",
+    "packageManager": "pnpm@10.26.0",
+    "devDependencies": {
+        "@vitest/browser": "^4.0.16",
+        "@vitest/browser-playwright": "^4.0.16",
+        "@vitest/coverage-v8": "^4.0.16",
+        "playwright": "^1.57.0",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.16"
+    },
+    "files": [
+        "dist",
+        "!**/*.tsbuildinfo",
+        "EXAMPLES.md"
+    ]
+}
