@@ -24,6 +24,20 @@ export interface CsvStringifyOptions<
 
 const UTF_8_BOM = '\uFEFF'
 
+/**
+ * CSV stringifier class for converting JavaScript objects into CSV format.
+ * Supports both synchronous and asynchronous streaming of CSV output.
+ *
+ * @typeParam T - The input object type
+ * @typeParam O - The output object type after optional transformation (defaults to T)
+ *
+ * @example
+ * ```typescript
+ * const data = [{ name: 'Alice', age: 30 }, { name: 'Bob', age: 25 }]
+ * const stringifier = new CsvStringify(data, { headers: ['name', 'age'] })
+ * const csvString = stringifier.toString()
+ * ```
+ */
 export class CsvStringify<T extends object = object, O extends object = T> {
     private values: Iterable<T> | AsyncIterable<T>
     headers?: string[]
@@ -35,6 +49,12 @@ export class CsvStringify<T extends object = object, O extends object = T> {
     alwaysWriteHeaders: boolean
     transform?: (row: T) => O
 
+    /**
+     * Creates a new CSV stringifier.
+     *
+     * @param values - Iterable or async iterable of objects to stringify
+     * @param options - Optional configuration for CSV stringification
+     */
     constructor(
         values: Iterable<T> | AsyncIterable<T>,
         options?: CsvStringifyOptions<T, O>,
@@ -119,6 +139,12 @@ export class CsvStringify<T extends object = object, O extends object = T> {
         }
     }
 
+    /**
+     * Returns a synchronous generator that yields CSV string chunks.
+     *
+     * @returns A generator that yields CSV strings
+     * @throws {Error} If values is not iterable
+     */
     *toStream(): Generator<CsvString<O>> {
         if (!(Symbol.iterator in this.values)) {
             throw new Error('Values is not iterable')
@@ -140,6 +166,11 @@ export class CsvStringify<T extends object = object, O extends object = T> {
         }
     }
 
+    /**
+     * Returns an asynchronous generator that yields CSV string chunks.
+     *
+     * @returns An async generator that yields CSV strings
+     */
     async *toStreamAsync(): AsyncGenerator<CsvString<O>> {
         if (this.writeBom) {
             yield UTF_8_BOM
@@ -161,6 +192,11 @@ export class CsvStringify<T extends object = object, O extends object = T> {
         }
     }
 
+    /**
+     * Converts all values to a single CSV string synchronously.
+     *
+     * @returns The complete CSV string
+     */
     toString(): CsvString<O> {
         let result = ''
         for (const chunk of this) {
@@ -169,6 +205,11 @@ export class CsvStringify<T extends object = object, O extends object = T> {
         return result
     }
 
+    /**
+     * Converts all values to a single CSV string asynchronously.
+     *
+     * @returns A promise that resolves to the complete CSV string
+     */
     async toStringAsync(): Promise<CsvString<O>> {
         let result = ''
         for await (const chunk of this) {
@@ -177,10 +218,20 @@ export class CsvStringify<T extends object = object, O extends object = T> {
         return result
     }
 
+    /**
+     * Makes this stringifier iterable using the synchronous stream.
+     *
+     * @returns A generator that yields CSV strings
+     */
     [Symbol.iterator](): Generator<CsvString<O>> {
         return this.toStream()
     }
 
+    /**
+     * Makes this stringifier async iterable using the asynchronous stream.
+     *
+     * @returns An async generator that yields CSV strings
+     */
     [Symbol.asyncIterator](): AsyncGenerator<CsvString<O>> {
         return this.toStreamAsync()
     }
