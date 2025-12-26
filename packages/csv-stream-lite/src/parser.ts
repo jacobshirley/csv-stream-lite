@@ -25,11 +25,23 @@ const isLineEnd = (byte: number | null): boolean => {
     return byte === BYTE_MAP.lineFeed || byte === BYTE_MAP.carriageReturn
 }
 
+/**
+ * Options for configuring CSV entity parsing.
+ */
 export interface CsvEntityOptions {
+    /** Character used to separate fields. Defaults to ',' */
     separator?: string
+    /** Character used to escape special characters. Defaults to '"' */
     escapeChar?: string
 }
 
+/**
+ * Abstract base class for CSV entities that supports both synchronous and asynchronous parsing.
+ * Provides common functionality for reading and streaming CSV data.
+ *
+ * @typeParam T - The type returned by read operations
+ * @typeParam S - The type yielded by stream operations (defaults to T)
+ */
 export abstract class CsvEntity<
     T,
     S = T,
@@ -39,6 +51,12 @@ export abstract class CsvEntity<
     escapeChar: string = '"'
     consumed: boolean = false
 
+    /**
+     * Creates a new CSV entity.
+     *
+     * @param asyncIterable - Optional byte stream or buffer to parse
+     * @param options - Configuration options for parsing
+     */
     constructor(
         asyncIterable?: ByteStream | ByteBuffer,
         options?: CsvEntityOptions,
@@ -76,24 +94,48 @@ export abstract class CsvEntity<
     protected abstract parseAsync(): Promise<T>
     protected abstract streamImpl(): Generator<S>
 
+    /**
+     * Reads and parses the entire entity synchronously.
+     * Marks the entity as consumed after reading.
+     *
+     * @returns The parsed result of type T
+     */
     read(): T {
         const res = this.parse()
         this.consumed = true
         return res
     }
 
+    /**
+     * Reads and parses the entire entity asynchronously.
+     * Marks the entity as consumed after reading.
+     *
+     * @returns A promise that resolves to the parsed result of type T
+     */
     async readAsync(): Promise<T> {
         const res = await this.parseAsync()
         this.consumed = true
         return res
     }
 
+    /**
+     * Returns a synchronous generator that yields chunks of type S.
+     * Marks the entity as consumed when iteration completes.
+     *
+     * @returns A generator that yields values of type S
+     */
     *stream(): Generator<S> {
         const res = yield* this.streamImpl()
         this.consumed = true
         return res
     }
 
+    /**
+     * Returns an asynchronous generator that yields chunks of type S.
+     * Handles buffering and automatically reads more data as needed.
+     *
+     * @returns An async generator that yields values of type S
+     */
     async *streamAsync(): AsyncGenerator<S> {
         while (true) {
             const stream = this.stream()
@@ -114,27 +156,51 @@ export abstract class CsvEntity<
         }
     }
 
+    /**
+     * Consumes the entity if it hasn't been consumed yet.
+     * This ensures the buffer advances to the end of this entity.
+     */
     consume(): void {
         if (!this.consumed) {
             this.read()
         }
     }
 
+    /**
+     * Asynchronously consumes the entity if it hasn't been consumed yet.
+     * This ensures the buffer advances to the end of this entity.
+     *
+     * @returns A promise that resolves when consumption is complete
+     */
     async consumeAsync(): Promise<void> {
         if (!this.consumed) {
             await this.readAsync()
         }
     }
 
+    /**
+     * Makes this entity iterable using the synchronous stream.
+     *
+     * @returns A generator that yields values of type S
+     */
     [Symbol.iterator](): Generator<S> {
         return this.stream()
     }
 
+    /**
+     * Makes this entity async iterable using the asynchronous stream.
+     *
+     * @returns An async generator that yields values of type S
+     */
     [Symbol.asyncIterator](): AsyncGenerator<S> {
         return this.streamAsync()
     }
 }
 
+/**
+ * Represents a single CSV cell that can be read as a string or streamed in chunks.
+ * Handles quoted cells and escape sequences according to CSV standards.
+ */
 export class CsvCell extends CsvEntity<string> {
     chunkSize: number = DEFAULT_CHUNK_SIZE
     endOfLineReached: boolean = false
@@ -159,6 +225,14 @@ export class CsvCell extends CsvEntity<string> {
         return str
     }
 
+    /**
+     * Reads the cell value and transforms it using the provided function.
+     * Special handling for Boolean transformer: converts 'true'/'false' strings to boolean.
+     *
+     * @typeParam T - The type to transform the cell value into
+     * @param transform - Function to transform the cell string into type T
+     * @returns The transformed value of type T
+     */
     readAs<T>(transform: (cell: string) => T): T {
         const cellStr = this.read()
 
@@ -169,6 +243,14 @@ export class CsvCell extends CsvEntity<string> {
         return transform(cellStr)
     }
 
+    /**
+     * Asynchronously reads the cell value and transforms it using the provided function.
+     * Special handling for Boolean transformer: converts 'true'/'false' strings to boolean.
+     *
+     * @typeParam T - The type to transform the cell value into
+     * @param transform - Function to transform the cell string into type T (can be async)
+     * @returns A promise that resolves to the transformed value of type T
+     */
     async readAsAsync<T>(
         transform: (cell: string) => Promise<T> | T,
     ): Promise<T> {
@@ -246,14 +328,32 @@ export class CsvCell extends CsvEntity<string> {
     }
 }
 
+/**
+ * Options for reading a CSV row as an object.
+ *
+ * @typeParam T - The object type with headers as keys
+ * @typeParam O - The output type after optional transformation (defaults to T)
+ */
 export interface CsvRowObjectOptions<T extends object, O = T> {
+    /** Shape definition mapping headers to type transformers, or an array of header names */
     shape: CsvObjectShape<T> | string[]
+    /** Optional row index for error messages */
     rowIndex?: number
+    /** Whether to include extra cells beyond defined headers. Defaults to false */
     includeExtraCells?: boolean
+    /** Whether to enforce exact column count matching headers. Defaults to false */
     strictColumns?: boolean
+    /** Optional function to transform the parsed row object */
     transform?: (row: T) => O
 }
 
+/**
+ * Represents a single CSV row that can be read as an array of strings or streamed as individual cells.
+ * Can also be parsed into an object using a shape definition.
+ *
+ * @typeParam T - The object type when reading as an object
+ * @typeParam O - The output type after optional transformation (defaults to T)
+ */
 export class CsvRow<T extends object = object, O = T> extends CsvEntity<
     string[],
     CsvCell
@@ -288,6 +388,15 @@ export class CsvRow<T extends object = object, O = T> extends CsvEntity<
         }
     }
 
+    /**
+     * Reads the row as an object using the provided shape definition.
+     * Handles column count validation and extra cells based on options.
+     *
+     * @param options - Configuration for reading the row as an object
+     * @returns The parsed object of type O
+     * @throws {TooManyColumnsError} If strictColumns is true and extra cells are found
+     * @throws {TooFewColumnsError} If strictColumns is true and cells are missing
+     */
     readObject(options: CsvRowObjectOptions<T, O>): O {
         let { shape } = options
         const obj: any = {}
@@ -346,6 +455,13 @@ export class CsvRow<T extends object = object, O = T> extends CsvEntity<
         return obj as O
     }
 
+    /**
+     * Asynchronously reads the row as an object using the provided shape definition.
+     * Automatically handles buffer refills as needed.
+     *
+     * @param options - Configuration for reading the row as an object
+     * @returns A promise that resolves to the parsed object of type O
+     */
     async readObjectAsync(options: CsvRowObjectOptions<T, O>): Promise<O> {
         while (true) {
             const value = this.byteBuffer.resetOnFail(() => {
@@ -361,10 +477,41 @@ export class CsvRow<T extends object = object, O = T> extends CsvEntity<
     }
 }
 
+/**
+ * Defines the shape of a CSV object by mapping each property key to a transformer function.
+ * The transformer function converts a cell string into the appropriate type for that property.
+ *
+ * @typeParam T - The object type being defined
+ *
+ * @example
+ * ```typescript
+ * const shape: CsvObjectShape<User> = {
+ *   name: String,
+ *   age: Number,
+ *   active: Boolean
+ * }
+ * ```
+ */
 export type CsvObjectShape<T extends object> = {
     [key in keyof T]: (cell: string) => T[key]
 }
 
+/**
+ * Main CSV parser class for parsing complete CSV documents.
+ * Supports reading headers, streaming rows, and converting rows to objects.
+ *
+ * @typeParam T - The object type for each row when reading as objects
+ * @typeParam O - The output type after optional transformation (defaults to T)
+ *
+ * @example
+ * ```typescript
+ * // Parse CSV with headers
+ * const csv = new Csv(fileStream, { readHeaders: true })
+ * for await (const row of csv.streamObjectsAsync()) {
+ *   console.log(row)
+ * }
+ * ```
+ */
 export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
     includeExtraCells: boolean = false
     ignoreUtf8Bom: boolean = true
@@ -374,6 +521,13 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
     strictColumns: boolean = false
     transform?: (row: T) => O
 
+    /**
+     * Creates a new CSV parser.
+     *
+     * @param asyncIterable - Optional byte stream or buffer containing CSV data
+     * @param options - Configuration options for CSV parsing
+     * @throws {Error} If both headers and shape options are specified
+     */
     constructor(
         asyncIterable?: ByteStream<T> | ByteBuffer,
         options?: CsvEntityOptions & {
@@ -455,6 +609,20 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
         this.consumed = true
     }
 
+    /**
+     * Synchronously streams CSV rows as objects.
+     * Reads headers from the first row if readHeaders is true.
+     *
+     * @returns A generator that yields parsed objects of type O
+     *
+     * @example
+     * ```typescript
+     * const csv = new Csv(csvString, { readHeaders: true })
+     * for (const row of csv.streamObjects()) {
+     *   console.log(row)
+     * }
+     * ```
+     */
     *streamObjects(): Generator<O> {
         const stream = this.stream()
         let headers: string[] = this.headers ?? []
@@ -491,6 +659,20 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
         }
     }
 
+    /**
+     * Asynchronously streams CSV rows as objects.
+     * Automatically handles buffer refills as needed.
+     *
+     * @returns An async generator that yields parsed objects of type O
+     *
+     * @example
+     * ```typescript
+     * const csv = new Csv(fileStream, { readHeaders: true })
+     * for await (const row of csv.streamObjectsAsync()) {
+     *   console.log(row)
+     * }
+     * ```
+     */
     async *streamObjectsAsync(): AsyncGenerator<O> {
         while (true) {
             const stream = this.streamObjects()
@@ -511,6 +693,24 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
         }
     }
 
+    /**
+     * Static method to stringify an array of objects into CSV format.
+     * Returns a synchronous generator that yields CSV string chunks.
+     *
+     * @typeParam T - The input object type
+     * @typeParam O - The output object type after optional transformation (defaults to T)
+     * @param values - Array of objects to convert to CSV
+     * @param options - Optional configuration for CSV stringification
+     * @returns A generator that yields CSV string chunks
+     *
+     * @example
+     * ```typescript
+     * const data = [{ name: 'Alice', age: 30 }, { name: 'Bob', age: 25 }]
+     * for (const chunk of Csv.stringify(data, { headers: ['name', 'age'] })) {
+     *   process.stdout.write(chunk)
+     * }
+     * ```
+     */
     static stringify<T extends object, O extends object = T>(
         values: T[],
         options?: CsvStringifyOptions<T, T extends O ? T : O>,
@@ -518,6 +718,24 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
         return new CsvStringify(values, options).toStream()
     }
 
+    /**
+     * Static method to stringify an array of objects into CSV format asynchronously.
+     * Returns an asynchronous generator that yields CSV string chunks.
+     *
+     * @typeParam T - The input object type
+     * @typeParam O - The output object type after optional transformation (defaults to T)
+     * @param values - Array of objects to convert to CSV
+     * @param options - Optional configuration for CSV stringification
+     * @returns An async generator that yields CSV string chunks
+     *
+     * @example
+     * ```typescript
+     * const data = [{ name: 'Alice', age: 30 }, { name: 'Bob', age: 25 }]
+     * for await (const chunk of Csv.stringifyAsync(data)) {
+     *   process.stdout.write(chunk)
+     * }
+     * ```
+     */
     static stringifyAsync<T extends object, O extends object = T>(
         values: T[],
         options?: CsvStringifyOptions<T, T extends O ? T : O>,

@@ -1,5 +1,5 @@
 /**
- * Base error class for JSON Stream Lite errors.
+ * Base error class for CSV Stream Lite errors.
  */
 export class CsvStreamLiteError extends Error {}
 
@@ -18,5 +18,12 @@ export class EofReachedError extends CsvStreamLiteError {}
  */
 export class BufferSizeExceededError extends CsvStreamLiteError {}
 
+/**
+ * Error thrown when a CSV row has more columns than expected when `strictColumns` is enabled.
+ */
 export class TooManyColumnsError extends CsvStreamLiteError {}
+
+/**
+ * Error thrown when a CSV row has fewer columns than expected when `strictColumns` is enabled.
+ */
 export class TooFewColumnsError extends CsvStreamLiteError {}
