@@ -224,6 +224,10 @@ const csv = new Csv(csvData, {
 ```typescript
 import { Csv, TooManyColumnsError, TooFewColumnsError } from 'csv-stream-lite'
 
+const csvData = `name,age,city
+Alice,30,New York
+Bob,25,Los Angeles,ExtraColumn`
+
 const csv = new Csv(csvData, {
     headers: ['name', 'age', 'city'],
     strictColumns: true, // Throws error if column count doesn't match
