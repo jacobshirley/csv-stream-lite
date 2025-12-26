@@ -1,7 +1,7 @@
 {
     "name": "csv-stream-lite-monorepo",
     "private": true,
-    "version": "1.0.1",
+    "version": "1.0.2",
     "type": "module",
     "description": "",
     "scripts": {
@@ -39,7 +39,7 @@
         "typescript": "^5.9.3"
     },
     "dependencies": {
-        "csv-stream-lite": "1.0.1"
+        "csv-stream-lite": "1.0.2"
     },
     "pnpm": {
         "packageExtensions": {
