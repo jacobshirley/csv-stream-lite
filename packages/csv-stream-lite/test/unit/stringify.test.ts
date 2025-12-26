@@ -13,7 +13,7 @@ describe('CSV Stringify', () => {
             'name,age,city\n' +
             'Alice,30,New York\n' +
             'Bob,25,Los Angeles\n' +
-            'Charlie,35,Chicago\n'
+            'Charlie,35,Chicago'
 
         const result = new CsvStringify(data)
         expect(result.toString()).toBe(expectedCsv)
@@ -26,9 +26,7 @@ describe('CSV Stringify', () => {
         ]
 
         const expectedCsv =
-            'name;age;city\r\n' +
-            'Alice;30;New York\r\n' +
-            'Bob;25;Los Angeles\r\n'
+            'name;age;city\r\n' + 'Alice;30;New York\r\n' + 'Bob;25;Los Angeles'
 
         const result = new CsvStringify(data, {
             delimiter: ';',
@@ -48,7 +46,7 @@ describe('CSV Stringify', () => {
             'name,comment\n' +
             'Alice,"Hello, world!"\n' +
             'Bob,"He said ""Hi"""\n' +
-            'Charlie,"Line1\nLine2"\n'
+            'Charlie,"Line1\nLine2"'
 
         const result = new CsvStringify(data)
         expect(result.toString()).toBe(expectedCsv)
@@ -60,7 +58,7 @@ describe('CSV Stringify', () => {
             { name: 'Bob', age: 25 },
         ]
 
-        const expectedCsv = '\uFEFFname,age\n' + 'Alice,30\n' + 'Bob,25\n'
+        const expectedCsv = '\uFEFFname,age\n' + 'Alice,30\n' + 'Bob,25'
 
         const result = new CsvStringify(data, { writeBom: true })
         expect(result.toString()).toBe(expectedCsv)
@@ -72,7 +70,7 @@ describe('CSV Stringify', () => {
             yield { name: 'Bob', age: 25 }
         }
 
-        const expectedCsv = 'name,age\n' + 'Alice,30\n' + 'Bob,25\n'
+        const expectedCsv = 'name,age\n' + 'Alice,30\n' + 'Bob,25'
 
         const result = new CsvStringify(asyncData())
         expect(await result.toStringAsync()).toBe(expectedCsv)
@@ -95,10 +93,7 @@ describe('CSV Stringify', () => {
         ]
 
         const expectedCsv =
-            'name,age,city\n' +
-            'Alice,30,\n' +
-            'Bob,,\n' +
-            'Charlie,35,Chicago\n'
+            'name,age,city\n' + 'Alice,30,\n' + 'Bob,,\n' + 'Charlie,35,Chicago'
         const result = new CsvStringify(data, {
             headers: ['name', 'age', 'city'],
         })
@@ -122,7 +117,7 @@ describe('CSV Stringify', () => {
         ]
 
         const expectedCsv =
-            'fullName,age\n' + 'Alice Smith,30\n' + 'Bob Johnson,25\n'
+            'fullName,age\n' + 'Alice Smith,30\n' + 'Bob Johnson,25'
 
         const result = new CsvStringify(data, {
             transform: (record) => ({

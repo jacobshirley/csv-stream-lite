@@ -20,3 +20,22 @@ export type ByteStream<T = unknown> =
     | AsyncIterable<StreamInput<T>>
     | Iterable<StreamInput<T>>
     | ReadableStream<StreamInput<T>>
+
+/**
+ * Defines the shape of a CSV object by mapping each property key to a transformer function.
+ * The transformer function converts a cell string into the appropriate type for that property.
+ *
+ * @typeParam T - The object type being defined
+ *
+ * @example
+ * ```typescript
+ * const shape: CsvObjectShape<User> = {
+ *   name: String,
+ *   age: Number,
+ *   active: Boolean
+ * }
+ * ```
+ */
+export type CsvObjectShape<T extends object> = {
+    [key in keyof T]: (cell: string) => T[key]
+}

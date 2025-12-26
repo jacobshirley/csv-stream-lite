@@ -343,7 +343,7 @@ describe('CSV parsing', () => {
                 if (headers.length === 0) {
                     headers = row.read()
                 } else {
-                    rows.push(row.readObject({ shape: headers }))
+                    rows.push(row.readObject({ headers }))
                 }
             }
 
@@ -369,7 +369,7 @@ describe('CSV parsing', () => {
                 if (headers.length === 0) {
                     headers = await row.readAsync()
                 } else {
-                    rows.push(await row.readObjectAsync({ shape: headers }))
+                    rows.push(await row.readObjectAsync({ headers }))
                 }
             }
 
@@ -402,11 +402,15 @@ describe('CSV parsing', () => {
             const csv = `name,age,city\nAlice,30,New York\nBob,25,Los Angeles`
             const parser = new Csv(csv, {
                 shape: {
-                    name: String,
-                    age: Number,
-                    city: String,
+                    fullName: String,
+                    isAdult: Boolean,
+                    location: String,
                 },
-                transform: (obj) => ({
+                transform: (obj: {
+                    name: string
+                    age: string
+                    city: string
+                }) => ({
                     fullName: obj.name.toUpperCase(),
                     isAdult: Number(obj.age) >= 18,
                     location: obj.city,
@@ -582,7 +586,7 @@ describe('CSV parsing', () => {
             ])
         })
 
-        it('should handle SBOM markers at start of file', () => {
+        it('should handle BOM markers at start of file', () => {
             const csv = `\uFEFF\uFEFFname,age,city\nAlice,30,New York\nBob,25,Los Angeles`
             const parser = new Csv<{
                 name: string

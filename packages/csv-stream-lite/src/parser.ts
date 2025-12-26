@@ -2,7 +2,7 @@ import { ByteBuffer } from './byte-buffer.js'
 import { DEFAULT_CHUNK_SIZE } from './defaults.js'
 import { TooFewColumnsError, TooManyColumnsError } from './errors.js'
 import { CsvStringify, CsvStringifyOptions } from './stringify.js'
-import { ByteStream, CsvString } from './types.js'
+import { ByteStream, CsvObjectShape, CsvString } from './types.js'
 import { bytesToString } from './utils.js'
 
 const UTF_8_BOM = [0xef, 0xbb, 0xbf]
@@ -237,7 +237,7 @@ export class CsvCell extends CsvEntity<string> {
         const cellStr = this.read()
 
         if ((transform as any) === Boolean) {
-            return (cellStr.toLowerCase() === 'true') as any as T
+            return (String(cellStr).toLowerCase() === 'true') as any as T
         }
 
         return transform(cellStr)
@@ -334,9 +334,11 @@ export class CsvCell extends CsvEntity<string> {
  * @typeParam T - The object type with headers as keys
  * @typeParam O - The output type after optional transformation (defaults to T)
  */
-export interface CsvRowObjectOptions<T extends object, O = T> {
+export interface CsvRowObjectOptions<T extends object, I = unknown> {
+    /** Headers for the CSV row */
+    headers: string[]
     /** Shape definition mapping headers to type transformers, or an array of header names */
-    shape: CsvObjectShape<T> | string[]
+    shape?: CsvObjectShape<T>
     /** Optional row index for error messages */
     rowIndex?: number
     /** Whether to include extra cells beyond defined headers. Defaults to false */
@@ -344,7 +346,7 @@ export interface CsvRowObjectOptions<T extends object, O = T> {
     /** Whether to enforce exact column count matching headers. Defaults to false */
     strictColumns?: boolean
     /** Optional function to transform the parsed row object */
-    transform?: (row: T) => O
+    transform?: (row: I) => T
 }
 
 /**
@@ -354,7 +356,7 @@ export interface CsvRowObjectOptions<T extends object, O = T> {
  * @typeParam T - The object type when reading as an object
  * @typeParam O - The output type after optional transformation (defaults to T)
  */
-export class CsvRow<T extends object = object, O = T> extends CsvEntity<
+export class CsvRow<T extends object = object, I = unknown> extends CsvEntity<
     string[],
     CsvCell
 > {
@@ -397,20 +399,20 @@ export class CsvRow<T extends object = object, O = T> extends CsvEntity<
      * @throws {TooManyColumnsError} If strictColumns is true and extra cells are found
      * @throws {TooFewColumnsError} If strictColumns is true and cells are missing
      */
-    readObject(options: CsvRowObjectOptions<T, O>): O {
-        let { shape } = options
-        const obj: any = {}
+    readObject(options: CsvRowObjectOptions<T, I>): T {
+        let { shape, headers } = options
+        let obj: any = {}
 
         let i = 0
         const includeExtraCells = options?.includeExtraCells ?? false
         const strictColumns = options?.strictColumns ?? false
+
         if (Array.isArray(shape)) {
             shape = shape.reduce((acc, header) => {
                 acc[header as keyof T] = String as any
                 return acc
             }, {} as CsvObjectShape<T>)
         }
-        const headers = Object.keys(shape)
 
         for (const cell of this) {
             if (!includeExtraCells && i >= headers.length) {
@@ -426,7 +428,7 @@ export class CsvRow<T extends object = object, O = T> extends CsvEntity<
                         ? `extra_cell_${i - headers.length + 1}`
                         : headers[i]
 
-                obj[header] = cell.readAs(shape[header as keyof T] ?? String)
+                obj[header] = cell.read()
             }
 
             i++
@@ -446,13 +448,24 @@ export class CsvRow<T extends object = object, O = T> extends CsvEntity<
             obj[header] = undefined
         }
 
-        this.consumed = true
-
         if (options.transform) {
-            return options.transform(obj)
+            obj = options.transform(obj)
         }
 
-        return obj as O
+        for (const transform in shape) {
+            const transformer = shape[transform as keyof T]
+            if (obj[transform] !== undefined) {
+                if ((transformer as any) === Boolean) {
+                    obj[transform] = String(obj[transform]) === 'true'
+                } else {
+                    obj[transform] = transformer(obj[transform])
+                }
+            }
+        }
+
+        this.consumed = true
+
+        return obj as T
     }
 
     /**
@@ -462,7 +475,7 @@ export class CsvRow<T extends object = object, O = T> extends CsvEntity<
      * @param options - Configuration for reading the row as an object
      * @returns A promise that resolves to the parsed object of type O
      */
-    async readObjectAsync(options: CsvRowObjectOptions<T, O>): Promise<O> {
+    async readObjectAsync(options: CsvRowObjectOptions<T, I>): Promise<T> {
         while (true) {
             const value = this.byteBuffer.resetOnFail(() => {
                 return this.readObject(options)
@@ -478,25 +491,6 @@ export class CsvRow<T extends object = object, O = T> extends CsvEntity<
 }
 
 /**
- * Defines the shape of a CSV object by mapping each property key to a transformer function.
- * The transformer function converts a cell string into the appropriate type for that property.
- *
- * @typeParam T - The object type being defined
- *
- * @example
- * ```typescript
- * const shape: CsvObjectShape<User> = {
- *   name: String,
- *   age: Number,
- *   active: Boolean
- * }
- * ```
- */
-export type CsvObjectShape<T extends object> = {
-    [key in keyof T]: (cell: string) => T[key]
-}
-
-/**
  * Main CSV parser class for parsing complete CSV documents.
  * Supports reading headers, streaming rows, and converting rows to objects.
  *
@@ -506,20 +500,23 @@ export type CsvObjectShape<T extends object> = {
  * @example
  * ```typescript
  * // Parse CSV with headers
- * const csv = new Csv(fileStream, { readHeaders: true })
+ * const csv = new Csv(fileStream)
  * for await (const row of csv.streamObjectsAsync()) {
  *   console.log(row)
  * }
  * ```
  */
-export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
+export class Csv<T extends object, I = unknown> extends CsvEntity<
+    T[],
+    CsvRow<T, I>
+> {
     includeExtraCells: boolean = false
     ignoreUtf8Bom: boolean = true
     headers?: string[]
     shape?: CsvObjectShape<T>
     readHeaders: boolean = true
     strictColumns: boolean = false
-    transform?: (row: T) => O
+    transform?: (row: I) => T
 
     /**
      * Creates a new CSV parser.
@@ -537,7 +534,7 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
             headers?: string[]
             shape?: CsvObjectShape<T>
             strictColumns?: boolean
-            transform?: (row: T) => O
+            transform?: (row: I) => T
         },
     ) {
         super(asyncIterable, options)
@@ -584,24 +581,24 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
         }
     }
 
-    protected parse(): O[] {
+    protected parse(): T[] {
         return Array.from(this.streamObjects())
     }
 
-    protected async parseAsync(): Promise<O[]> {
-        const results: O[] = []
+    protected async parseAsync(): Promise<T[]> {
+        const results: T[] = []
         for await (const obj of this.streamObjectsAsync()) {
             results.push(obj)
         }
         return results
     }
 
-    protected *streamImpl(): Generator<CsvRow<T, O>> {
+    protected *streamImpl(): Generator<CsvRow<T>> {
         // Skip UTF-8 BOM if present
         this.readBom()
 
         while (this.byteBuffer.peek() !== null) {
-            const row = new CsvRow<T, O>(this.byteBuffer, this)
+            const row = new CsvRow<T>(this.byteBuffer, this)
             yield row
             row.consume() // Advance the buffer
         }
@@ -617,13 +614,13 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
      *
      * @example
      * ```typescript
-     * const csv = new Csv(csvString, { readHeaders: true })
+     * const csv = new Csv(csvString)
      * for (const row of csv.streamObjects()) {
      *   console.log(row)
      * }
      * ```
      */
-    *streamObjects(): Generator<O> {
+    *streamObjects(): Generator<T> {
         const stream = this.stream()
         let headers: string[] = this.headers ?? []
 
@@ -640,7 +637,6 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
         }
 
         let rowIndex = this.readHeaders ? 2 : 1
-        const shape = this.shape ?? headers
 
         while (true) {
             const currentRow = stream.next()
@@ -650,7 +646,8 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
             }
 
             yield currentRow.value.readObject({
-                shape,
+                headers: headers,
+                shape: this.shape,
                 includeExtraCells: this.includeExtraCells,
                 strictColumns: this.strictColumns,
                 rowIndex: rowIndex++,
@@ -667,16 +664,16 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
      *
      * @example
      * ```typescript
-     * const csv = new Csv(fileStream, { readHeaders: true })
+     * const csv = new Csv(fileStream)
      * for await (const row of csv.streamObjectsAsync()) {
      *   console.log(row)
      * }
      * ```
      */
-    async *streamObjectsAsync(): AsyncGenerator<O> {
+    async *streamObjectsAsync(): AsyncGenerator<T> {
         while (true) {
             const stream = this.streamObjects()
-            let currentRow: IteratorResult<O> | undefined = undefined
+            let currentRow: IteratorResult<T> | undefined = undefined
 
             while (true) {
                 currentRow = this.byteBuffer.resetOnFail(() => stream.next())
@@ -741,5 +738,21 @@ export class Csv<T extends object, O = T> extends CsvEntity<O[], CsvRow<T, O>> {
         options?: CsvStringifyOptions<T, T extends O ? T : O>,
     ): AsyncGenerator<CsvString<T extends O ? T : O>> {
         return new CsvStringify(values, options).toStreamAsync()
+    }
+
+    /**
+     * Static method to create a CsvStringify instance for advanced usage.
+     *
+     * @typeParam T - The input object type
+     * @typeParam O - The output object type after optional transformation (defaults to T)
+     * @param values - Array of objects to convert to CSV
+     * @param options - Optional configuration for CSV stringification
+     * @returns A CsvStringify instance
+     */
+    static stringifier<T extends object, O extends object = T>(
+        values: T[],
+        options?: CsvStringifyOptions<T, T extends O ? T : O>,
+    ): CsvStringify<T, T extends O ? T : O> {
+        return new CsvStringify(values, options)
     }
 }

@@ -1,11 +1,11 @@
-import { CsvString } from './types.js'
+import { CsvObjectShape, CsvString } from './types.js'
 
 export interface CsvStringifyOptions<
     T extends object = object,
     O extends object = T,
 > {
-    /** Optional array of headers to use as the first row */
-    headers?: string[]
+    /** Optional array of headers to use as the first row. Optionally, pass in a CsvObjectShape to be used as headers */
+    headers?: string[] | CsvObjectShape<T>
     /** Character to separate fields (default: ',') */
     delimiter?: string
     /** Character to escape special characters (default: '"') */
@@ -61,6 +61,10 @@ export class CsvStringify<T extends object = object, O extends object = T> {
     ) {
         this.values = values
         this.headers = options?.headers
+            ? Array.isArray(options.headers)
+                ? options.headers
+                : Object.keys(options.headers)
+            : undefined
         this.delimiter = options?.delimiter ?? ','
         this.escapeChar = options?.escapeChar ?? '"'
         this.quoteChar = options?.quoteChar ?? '"'
@@ -156,9 +160,11 @@ export class CsvStringify<T extends object = object, O extends object = T> {
 
         let firstRecord = true
         for (const record of this.values) {
+            if (!firstRecord) {
+                yield this.newline
+            }
             yield* this.recordToString(record, firstRecord)
             firstRecord = false
-            yield this.newline
         }
 
         if (firstRecord && this.alwaysWriteHeaders) {
@@ -177,14 +183,13 @@ export class CsvStringify<T extends object = object, O extends object = T> {
         }
 
         let firstRecord = true
-        let yieldedHeaders = false
 
         for await (const record of this.values) {
+            if (!firstRecord) {
+                yield this.newline
+            }
             yield* this.recordToString(record, firstRecord)
             firstRecord = false
-
-            yield this.newline
-            yieldedHeaders = true
         }
 
         if (firstRecord && this.alwaysWriteHeaders) {
