@@ -271,10 +271,3 @@ Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.m
 ## License
 
 MIT © [Jacob Shirley](https://github.com/jacobshirley)
-
-## Links
-
-- [Documentation](https://jacobshirley.github.io/csv-stream-lite/v1)
-- [GitHub Repository](https://github.com/jacobshirley/csv-stream-lite)
-- [npm Package](https://www.npmjs.com/package/csv-stream-lite)
-- [Issue Tracker](https://github.com/jacobshirley/csv-stream-lite/issues)
