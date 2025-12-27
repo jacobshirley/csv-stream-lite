@@ -99,8 +99,6 @@ If both headers and shape options are specified
 
 > **escapeChar**: `string` = `'"'`
 
-Character used to escape special characters. Defaults to '"'
-
 #### Inherited from
 
 [`CsvEntity`](CsvEntity.md).[`escapeChar`](CsvEntity.md#escapechar)
@@ -125,6 +123,16 @@ Character used to escape special characters. Defaults to '"'
 
 ---
 
+### newline?
+
+> `optional` **newline**: `string`
+
+#### Inherited from
+
+[`CsvEntity`](CsvEntity.md).[`newline`](CsvEntity.md#newline)
+
+---
+
 ### readHeaders
 
 > **readHeaders**: `boolean` = `true`
@@ -134,8 +142,6 @@ Character used to escape special characters. Defaults to '"'
 ### separator
 
 > **separator**: `string` = `','`
-
-Character used to separate fields. Defaults to ','
 
 #### Inherited from
 

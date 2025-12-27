@@ -85,19 +85,25 @@ Configuration options for parsing
 
 > **escapeChar**: `string` = `'"'`
 
-Character used to escape special characters. Defaults to '"'
-
 #### Inherited from
 
 [`CsvEntity`](CsvEntity.md).[`escapeChar`](CsvEntity.md#escapechar)
 
 ---
 
+### newline?
+
+> `optional` **newline**: `string`
+
+#### Inherited from
+
+[`CsvEntity`](CsvEntity.md).[`newline`](CsvEntity.md#newline)
+
+---
+
 ### separator
 
 > **separator**: `string` = `','`
-
-Character used to separate fields. Defaults to ','
 
 #### Inherited from
 
