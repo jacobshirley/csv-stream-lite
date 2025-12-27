@@ -220,7 +220,7 @@ export class CsvCell extends CsvEntity<string> {
             for (let i = 0; i < this.newline.length; i++) {
                 const expectedByte = this.newline.charCodeAt(i)
                 const actualByte = this.byteBuffer.peek(i)
-                if (actualByte !== expectedByte) {
+                if (actualByte === null || actualByte !== expectedByte) {
                     return false
                 }
             }
@@ -234,12 +234,17 @@ export class CsvCell extends CsvEntity<string> {
     /**
      * Consumes a line ending from the buffer.
      * Handles both default line endings (\r, \n, \r\n) and custom newline strings.
+     * Should only be called after isAtLineEnd() returns true.
      */
     private consumeLineEnd(): void {
         if (this.newline !== undefined) {
-            // Consume custom newline string
+            // Consume custom newline string - verify each byte matches
             for (let i = 0; i < this.newline.length; i++) {
-                this.byteBuffer.next()
+                const expectedByte = this.newline.charCodeAt(i)
+                const actualByte = this.byteBuffer.peek()
+                if (actualByte === expectedByte) {
+                    this.byteBuffer.next()
+                }
             }
             this.endOfLineReached = true
         } else {
