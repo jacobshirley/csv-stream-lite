@@ -73,7 +73,21 @@ export abstract class CsvEntity<T, S = T> {
             this.escapeChar = options.escapeChar
         }
         if (options?.newline !== undefined) {
-            this.newline = options.newline
+            const newline = options.newline
+            if (newline === '') {
+                throw new Error('Invalid CSV newline: newline option must be a non-empty string.')
+            }
+            if (newline.includes(this.separator)) {
+                throw new Error(
+                    'Invalid CSV newline: newline option must not contain the field separator character.',
+                )
+            }
+            if (newline.includes(this.escapeChar)) {
+                throw new Error(
+                    'Invalid CSV newline: newline option must not contain the escape character.',
+                )
+            }
+            this.newline = newline
         }
     }
 
