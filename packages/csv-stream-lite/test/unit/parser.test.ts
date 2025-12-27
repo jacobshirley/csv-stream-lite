@@ -219,6 +219,32 @@ describe('CSV parsing', () => {
                 'No more data to read',
             )
         })
+
+        it('should handle multi-character custom newline split across buffer boundaries', async () => {
+            const csv = `name,age<EOL>Alice,30<EOL>Bob,25`
+            const parser = new CsvCell(
+                (async function* () {
+                    // Yield data in small chunks to force buffer boundaries
+                    // that split the <EOL> newline sequence
+                    yield 'name,age<E'
+                    yield 'OL>Alice,3'
+                    yield '0<EOL>Bob,'
+                    yield '25'
+                })(),
+                { newline: '<EOL>' },
+            )
+
+            // Set a small buffer to force frequent refills
+            parser.maxBufferSize = 5
+            parser.chunkSize = 5
+
+            expect(await parser.readAsync()).toBe('name')
+            expect(await parser.readAsync()).toBe('age')
+            expect(await parser.readAsync()).toBe('Alice')
+            expect(await parser.readAsync()).toBe('30')
+            expect(await parser.readAsync()).toBe('Bob')
+            expect(await parser.readAsync()).toBe('25')
+        })
     })
 
     describe('Row parsing', () => {
