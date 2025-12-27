@@ -93,6 +93,36 @@ describe('CSV parsing', () => {
             expect(parser.read()).toBe('Los Angeles')
         })
 
+        it('should handle custom newline strings - pipe', () => {
+            const csv = `name,age,city|Alice,30,New York|Bob,25,Los Angeles`
+            const parser = new CsvCell(csv, { newline: '|' })
+
+            expect(parser.read()).toBe('name')
+            expect(parser.read()).toBe('age')
+            expect(parser.read()).toBe('city')
+            expect(parser.read()).toBe('Alice')
+            expect(parser.read()).toBe('30')
+            expect(parser.read()).toBe('New York')
+            expect(parser.read()).toBe('Bob')
+            expect(parser.read()).toBe('25')
+            expect(parser.read()).toBe('Los Angeles')
+        })
+
+        it('should handle custom newline strings - multi-character', () => {
+            const csv = `name,age,city<EOL>Alice,30,New York<EOL>Bob,25,Los Angeles`
+            const parser = new CsvCell(csv, { newline: '<EOL>' })
+
+            expect(parser.read()).toBe('name')
+            expect(parser.read()).toBe('age')
+            expect(parser.read()).toBe('city')
+            expect(parser.read()).toBe('Alice')
+            expect(parser.read()).toBe('30')
+            expect(parser.read()).toBe('New York')
+            expect(parser.read()).toBe('Bob')
+            expect(parser.read()).toBe('25')
+            expect(parser.read()).toBe('Los Angeles')
+        })
+
         it('should handle different separators', () => {
             const csv = `name;age;city\nAlice;30;New York\nBob;25;Los Angeles`
             const parser = new CsvCell(csv, { separator: ';' })
@@ -188,6 +218,32 @@ describe('CSV parsing', () => {
             await expect(() => parser.readAsync()).rejects.toThrowError(
                 'No more data to read',
             )
+        })
+
+        it('should handle multi-character custom newline split across buffer boundaries', async () => {
+            const csv = `name,age<EOL>Alice,30<EOL>Bob,25`
+            const parser = new CsvCell(
+                (async function* () {
+                    // Yield data in small chunks to force buffer boundaries
+                    // that split the <EOL> newline sequence
+                    yield 'name,age<E'
+                    yield 'OL>Alice,3'
+                    yield '0<EOL>Bob,'
+                    yield '25'
+                })(),
+                { newline: '<EOL>' },
+            )
+
+            // Set a small buffer to force frequent refills
+            parser.maxBufferSize = 5
+            parser.chunkSize = 5
+
+            expect(await parser.readAsync()).toBe('name')
+            expect(await parser.readAsync()).toBe('age')
+            expect(await parser.readAsync()).toBe('Alice')
+            expect(await parser.readAsync()).toBe('30')
+            expect(await parser.readAsync()).toBe('Bob')
+            expect(await parser.readAsync()).toBe('25')
         })
     })
 
@@ -691,6 +747,70 @@ describe('CSV parsing', () => {
             expect(() => parser.read()).toThrowError(
                 'Not enough cells in row 2 to match headers when strictColumns is enabled',
             )
+        })
+
+        it('should parse CSV with custom newline - pipe', () => {
+            const csv = `name,age,city|Alice,30,New York|Bob,25,Los Angeles`
+            const parser = new Csv<{
+                name: string
+                age: string
+                city: string
+            }>(csv, { newline: '|' })
+
+            const rows = parser.read()
+            expect(rows).toEqual([
+                { name: 'Alice', age: '30', city: 'New York' },
+                { name: 'Bob', age: '25', city: 'Los Angeles' },
+            ])
+        })
+
+        it('should parse CSV with custom newline - multi-character', () => {
+            const csv = `name,age,city<EOL>Alice,30,New York<EOL>Bob,25,Los Angeles`
+            const parser = new Csv<{
+                name: string
+                age: string
+                city: string
+            }>(csv, { newline: '<EOL>' })
+
+            const rows = parser.read()
+            expect(rows).toEqual([
+                { name: 'Alice', age: '30', city: 'New York' },
+                { name: 'Bob', age: '25', city: 'Los Angeles' },
+            ])
+        })
+
+        it('should stream CSV with custom newline asynchronously', async () => {
+            const csv = `name,age,city||Alice,30,New York||Bob,25,Los Angeles`
+            const parser = new Csv<{
+                name: string
+                age: string
+                city: string
+            }>(csv, { newline: '||' })
+
+            const rows: Array<{ name: string; age: string; city: string }> = []
+            for await (const row of parser.streamObjectsAsync()) {
+                rows.push(row)
+            }
+
+            expect(rows).toEqual([
+                { name: 'Alice', age: '30', city: 'New York' },
+                { name: 'Bob', age: '25', city: 'Los Angeles' },
+            ])
+        })
+
+        it('should handle custom newline with quoted cells', () => {
+            const csv = `name,age,city|"Alice",30,"New York"|"Bob",25,"Los Angeles"`
+            const parser = new Csv<{
+                name: string
+                age: string
+                city: string
+            }>(csv, { newline: '|' })
+
+            const rows = parser.read()
+            expect(rows).toEqual([
+                { name: 'Alice', age: '30', city: 'New York' },
+                { name: 'Bob', age: '25', city: 'Los Angeles' },
+            ])
         })
     })
 })

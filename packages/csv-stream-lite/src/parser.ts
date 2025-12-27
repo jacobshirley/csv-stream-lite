@@ -33,6 +33,8 @@ export interface CsvEntityOptions {
     separator?: string
     /** Character used to escape special characters. Defaults to '"' */
     escapeChar?: string
+    /** String used to denote new lines. Defaults to auto-detected '\r', '\n', or '\r\n' */
+    newline?: string
 }
 
 /**
@@ -42,13 +44,11 @@ export interface CsvEntityOptions {
  * @typeParam T - The type returned by read operations
  * @typeParam S - The type yielded by stream operations (defaults to T)
  */
-export abstract class CsvEntity<
-    T,
-    S = T,
-> implements Required<CsvEntityOptions> {
+export abstract class CsvEntity<T, S = T> {
     byteBuffer: ByteBuffer
     separator: string = ','
     escapeChar: string = '"'
+    newline?: string
     consumed: boolean = false
 
     /**
@@ -71,6 +71,25 @@ export abstract class CsvEntity<
         }
         if (options?.escapeChar) {
             this.escapeChar = options.escapeChar
+        }
+        if (options?.newline !== undefined) {
+            const newline = options.newline
+            if (newline === '') {
+                throw new Error(
+                    'Invalid CSV newline: newline option must be a non-empty string.',
+                )
+            }
+            if (newline.includes(this.separator)) {
+                throw new Error(
+                    'Invalid CSV newline: newline option must not contain the field separator character.',
+                )
+            }
+            if (newline.includes(this.escapeChar)) {
+                throw new Error(
+                    'Invalid CSV newline: newline option must not contain the escape character.',
+                )
+            }
+            this.newline = newline
         }
     }
 
@@ -205,6 +224,57 @@ export class CsvCell extends CsvEntity<string> {
     chunkSize: number = DEFAULT_CHUNK_SIZE
     endOfLineReached: boolean = false
 
+    /**
+     * Checks if the current buffer position starts with a line ending.
+     * Supports both default line endings (\r, \n, \r\n) and custom newline strings.
+     *
+     * @returns true if at the start of a line ending, false otherwise
+     */
+    private isAtLineEnd(): boolean {
+        if (this.newline !== undefined) {
+            // Check for custom newline string
+            for (let i = 0; i < this.newline.length; i++) {
+                const expectedByte = this.newline.charCodeAt(i)
+                const actualByte = this.byteBuffer.peek(i)
+                if (actualByte === null || actualByte !== expectedByte) {
+                    return false
+                }
+            }
+            return true
+        } else {
+            // Default behavior: check for \r or \n
+            return isLineEnd(this.byteBuffer.peek())
+        }
+    }
+
+    /**
+     * Consumes a line ending from the buffer.
+     * Handles both default line endings (\r, \n, \r\n) and custom newline strings.
+     * Should only be called after isAtLineEnd() returns true.
+     */
+    private consumeLineEnd(): void {
+        if (this.newline !== undefined) {
+            // Consume custom newline string - verify each byte matches
+            for (let i = 0; i < this.newline.length; i++) {
+                const expectedByte = this.newline.charCodeAt(i)
+                const actualByte = this.byteBuffer.peek()
+                if (actualByte === null || actualByte !== expectedByte) {
+                    throw new Error(
+                        'Invariant violation: consumeLineEnd called when not at line end',
+                    )
+                }
+                this.byteBuffer.next()
+            }
+            this.endOfLineReached = true
+        } else {
+            // Default behavior: consume \r and/or \n
+            while (isLineEnd(this.byteBuffer.peek())) {
+                this.byteBuffer.next()
+                this.endOfLineReached = true
+            }
+        }
+    }
+
     protected parse(): string {
         let str = ''
 
@@ -296,7 +366,7 @@ export class CsvCell extends CsvEntity<string> {
                     }
                 }
             } else {
-                if (next === separator || isLineEnd(next)) {
+                if (next === separator || this.isAtLineEnd()) {
                     break
                 }
             }
@@ -318,9 +388,8 @@ export class CsvCell extends CsvEntity<string> {
             this.byteBuffer.expect(separator) // consume separator
         }
 
-        while (isLineEnd(this.byteBuffer.peek())) {
-            this.byteBuffer.next() // consume line ending
-            this.endOfLineReached = true
+        if (this.isAtLineEnd()) {
+            this.consumeLineEnd()
         }
 
         if (!hadData || chunk.length > 0)
