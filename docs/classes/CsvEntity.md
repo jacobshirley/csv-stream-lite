@@ -29,10 +29,6 @@ The type returned by read operations
 
 The type yielded by stream operations (defaults to T)
 
-## Implements
-
-- `Required`\<[`CsvEntityOptions`](../interfaces/CsvEntityOptions.md)\>
-
 ## Constructors
 
 ### Constructor
@@ -77,23 +73,17 @@ Configuration options for parsing
 
 > **escapeChar**: `string` = `'"'`
 
-Character used to escape special characters. Defaults to '"'
+---
 
-#### Implementation of
+### newline?
 
-[`CsvEntityOptions`](../interfaces/CsvEntityOptions.md).[`escapeChar`](../interfaces/CsvEntityOptions.md#escapechar)
+> `optional` **newline**: `string`
 
 ---
 
 ### separator
 
 > **separator**: `string` = `','`
-
-Character used to separate fields. Defaults to ','
-
-#### Implementation of
-
-[`CsvEntityOptions`](../interfaces/CsvEntityOptions.md).[`separator`](../interfaces/CsvEntityOptions.md#separator)
 
 ## Accessors
 

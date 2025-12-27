@@ -18,6 +18,14 @@ Character used to escape special characters. Defaults to '"'
 
 ---
 
+### newline?
+
+> `optional` **newline**: `string`
+
+String used to denote new lines. Defaults to auto-detected '\r', '\n', or '\r\n'
+
+---
+
 ### separator?
 
 > `optional` **separator**: `string`
