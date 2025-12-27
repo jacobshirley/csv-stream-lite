@@ -33,7 +33,7 @@ export interface CsvEntityOptions {
     separator?: string
     /** Character used to escape special characters. Defaults to '"' */
     escapeChar?: string
-    /** String used to denote new lines. Defaults to '\n' or '\r\n' (auto-detected) */
+    /** String used to denote new lines. Defaults to auto-detected '\r', '\n', or '\r\n' */
     newline?: string
 }
 
