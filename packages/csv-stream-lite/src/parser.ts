@@ -242,9 +242,10 @@ export class CsvCell extends CsvEntity<string> {
             for (let i = 0; i < this.newline.length; i++) {
                 const expectedByte = this.newline.charCodeAt(i)
                 const actualByte = this.byteBuffer.peek()
-                if (actualByte === expectedByte) {
-                    this.byteBuffer.next()
+                if (actualByte === null || actualByte !== expectedByte) {
+                    throw new Error('Invariant violation: consumeLineEnd called when not at line end')
                 }
+                this.byteBuffer.next()
             }
             this.endOfLineReached = true
         } else {
