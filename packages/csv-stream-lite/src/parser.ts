@@ -75,7 +75,9 @@ export abstract class CsvEntity<T, S = T> {
         if (options?.newline !== undefined) {
             const newline = options.newline
             if (newline === '') {
-                throw new Error('Invalid CSV newline: newline option must be a non-empty string.')
+                throw new Error(
+                    'Invalid CSV newline: newline option must be a non-empty string.',
+                )
             }
             if (newline.includes(this.separator)) {
                 throw new Error(
@@ -257,7 +259,9 @@ export class CsvCell extends CsvEntity<string> {
                 const expectedByte = this.newline.charCodeAt(i)
                 const actualByte = this.byteBuffer.peek()
                 if (actualByte === null || actualByte !== expectedByte) {
-                    throw new Error('Invariant violation: consumeLineEnd called when not at line end')
+                    throw new Error(
+                        'Invariant violation: consumeLineEnd called when not at line end',
+                    )
                 }
                 this.byteBuffer.next()
             }
