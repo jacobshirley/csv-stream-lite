@@ -26,8 +26,24 @@ String used to denote new lines. Defaults to auto-detected '\r', '\n', or '\r\n'
 
 ---
 
+### quoteChar?
+
+> `optional` **quoteChar**: `string`
+
+Character used to quote fields. Defaults to escapeChar value
+
+---
+
 ### separator?
 
 > `optional` **separator**: `string`
 
 Character used to separate fields. Defaults to ','
+
+---
+
+### trim?
+
+> `optional` **trim**: `boolean`
+
+Whether to trim whitespace from fields. Defaults to false. NOTE: this option is not supported when streaming, as trimming requires buffering the entire field.

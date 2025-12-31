@@ -133,6 +133,16 @@ If both headers and shape options are specified
 
 ---
 
+### quoteChar
+
+> **quoteChar**: `string` = `'"'`
+
+#### Inherited from
+
+[`CsvEntity`](CsvEntity.md).[`quoteChar`](CsvEntity.md#quotechar)
+
+---
+
 ### readHeaders
 
 > **readHeaders**: `boolean` = `true`
@@ -174,6 +184,16 @@ If both headers and shape options are specified
 #### Returns
 
 `T`
+
+---
+
+### trim
+
+> **trim**: `boolean` = `false`
+
+#### Inherited from
+
+[`CsvEntity`](CsvEntity.md).[`trim`](CsvEntity.md#trim)
 
 ## Accessors
 

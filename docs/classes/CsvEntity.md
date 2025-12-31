@@ -81,9 +81,21 @@ Configuration options for parsing
 
 ---
 
+### quoteChar
+
+> **quoteChar**: `string` = `'"'`
+
+---
+
 ### separator
 
 > **separator**: `string` = `','`
+
+---
+
+### trim
+
+> **trim**: `boolean` = `false`
 
 ## Accessors
 

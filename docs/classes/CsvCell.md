@@ -97,6 +97,16 @@ Configuration options for parsing
 
 ---
 
+### quoteChar
+
+> **quoteChar**: `string` = `'"'`
+
+#### Inherited from
+
+[`CsvEntity`](CsvEntity.md).[`quoteChar`](CsvEntity.md#quotechar)
+
+---
+
 ### separator
 
 > **separator**: `string` = `','`
@@ -104,6 +114,16 @@ Configuration options for parsing
 #### Inherited from
 
 [`CsvEntity`](CsvEntity.md).[`separator`](CsvEntity.md#separator)
+
+---
+
+### trim
+
+> **trim**: `boolean` = `false`
+
+#### Inherited from
+
+[`CsvEntity`](CsvEntity.md).[`trim`](CsvEntity.md#trim)
 
 ## Accessors
 
