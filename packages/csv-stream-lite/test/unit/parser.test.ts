@@ -245,6 +245,21 @@ describe('CSV parsing', () => {
             expect(await parser.readAsync()).toBe('Bob')
             expect(await parser.readAsync()).toBe('25')
         })
+
+        it('should be able to trim whitespace from cells', () => {
+            const csv = `  name  ,  age  ,  city  \n  Alice  ,  30  ,  New York  \n  Bob  ,  25  ,  Los Angeles  `
+            const parser = new CsvCell(csv, { trim: true })
+
+            expect(parser.read()).toBe('name')
+            expect(parser.read()).toBe('age')
+            expect(parser.read()).toBe('city')
+            expect(parser.read()).toBe('Alice')
+            expect(parser.read()).toBe('30')
+            expect(parser.read()).toBe('New York')
+            expect(parser.read()).toBe('Bob')
+            expect(parser.read()).toBe('25')
+            expect(parser.read()).toBe('Los Angeles')
+        })
     })
 
     describe('Row parsing', () => {

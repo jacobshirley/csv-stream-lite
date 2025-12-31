@@ -35,6 +35,8 @@ export interface CsvEntityOptions {
     escapeChar?: string
     /** String used to denote new lines. Defaults to auto-detected '\r', '\n', or '\r\n' */
     newline?: string
+    /** Whether to trim whitespace from fields. Defaults to false. NOTE: this option is not supported when streaming, as trimming requires buffering the entire field. */
+    trim?: boolean
 }
 
 /**
@@ -49,6 +51,7 @@ export abstract class CsvEntity<T, S = T> {
     separator: string = ','
     escapeChar: string = '"'
     newline?: string
+    trim: boolean = false
     consumed: boolean = false
 
     /**
@@ -71,6 +74,9 @@ export abstract class CsvEntity<T, S = T> {
         }
         if (options?.escapeChar) {
             this.escapeChar = options.escapeChar
+        }
+        if (options?.trim !== undefined) {
+            this.trim = options.trim
         }
         if (options?.newline !== undefined) {
             const newline = options.newline
@@ -282,7 +288,7 @@ export class CsvCell extends CsvEntity<string> {
             str += part
         }
 
-        return str
+        return this.trim ? str.trim() : str
     }
 
     protected async parseAsync(): Promise<string> {
@@ -292,7 +298,7 @@ export class CsvCell extends CsvEntity<string> {
             str += part
         }
 
-        return str
+        return this.trim ? str.trim() : str
     }
 
     /**
