@@ -33,6 +33,8 @@ export interface CsvEntityOptions {
     separator?: string
     /** Character used to escape special characters. Defaults to '"' */
     escapeChar?: string
+    /** Character used to quote fields. Defaults to escapeChar value */
+    quoteChar?: string
     /** String used to denote new lines. Defaults to auto-detected '\r', '\n', or '\r\n' */
     newline?: string
     /** Whether to trim whitespace from fields. Defaults to false. NOTE: this option is not supported when streaming, as trimming requires buffering the entire field. */
@@ -50,6 +52,7 @@ export abstract class CsvEntity<T, S = T> {
     byteBuffer: ByteBuffer
     separator: string = ','
     escapeChar: string = '"'
+    quoteChar: string = '"'
     newline?: string
     trim: boolean = false
     consumed: boolean = false
@@ -75,6 +78,12 @@ export abstract class CsvEntity<T, S = T> {
         if (options?.escapeChar) {
             this.escapeChar = options.escapeChar
         }
+        if (options?.quoteChar) {
+            this.quoteChar = options.quoteChar
+        } else if (options?.escapeChar) {
+            // Default quoteChar to escapeChar if only escapeChar is specified
+            this.quoteChar = options.escapeChar
+        }
         if (options?.trim !== undefined) {
             this.trim = options.trim
         }
@@ -93,6 +102,11 @@ export abstract class CsvEntity<T, S = T> {
             if (newline.includes(this.escapeChar)) {
                 throw new Error(
                     'Invalid CSV newline: newline option must not contain the escape character.',
+                )
+            }
+            if (newline.includes(this.quoteChar)) {
+                throw new Error(
+                    'Invalid CSV newline: newline option must not contain the quote character.',
                 )
             }
             this.newline = newline
@@ -340,25 +354,26 @@ export class CsvCell extends CsvEntity<string> {
     protected *streamImpl(): Generator<string> {
         const separator = this.separator.charCodeAt(0)
         const escapeChar = this.escapeChar.charCodeAt(0)
+        const quoteChar = this.quoteChar.charCodeAt(0)
         let chunk: number[] = []
         let hadData: boolean = false
-        let isEscaped = false
+        let isQuoted = false
 
         const next = this.byteBuffer.peek()
         if (next === null && this.byteBuffer.eof) {
             throw new Error('No more data to read')
         }
 
-        if (next === escapeChar) {
-            isEscaped = true
-            this.byteBuffer.expect(escapeChar) // consume opening quote
+        if (next === quoteChar) {
+            isQuoted = true
+            this.byteBuffer.expect(quoteChar) // consume opening quote
         }
 
         while (this.byteBuffer.peek() !== null) {
             const next = this.byteBuffer.peek()
-            if (isEscaped) {
-                if (next === escapeChar) {
-                    // Possible end of quoted cell
+            if (isQuoted) {
+                if (next === escapeChar && escapeChar === quoteChar) {
+                    // Standard CSV: quote char doubles as escape char
                     const lookahead = this.byteBuffer.peek(1)
                     if (lookahead === escapeChar) {
                         // Escaped quote
@@ -369,6 +384,18 @@ export class CsvCell extends CsvEntity<string> {
                     } else {
                         // End of quoted cell
                         break
+                    }
+                } else if (next === quoteChar) {
+                    // End of quoted cell when using separate quote/escape chars
+                    break
+                } else if (next === escapeChar) {
+                    // Handle escape character when different from quote char
+                    const lookahead = this.byteBuffer.peek(1)
+                    if (lookahead !== null) {
+                        this.byteBuffer.expect(escapeChar) // consume escape char
+                        const escapedChar = this.byteBuffer.next() // consume escaped char
+                        chunk.push(escapedChar)
+                        continue
                     }
                 }
             } else {
@@ -386,8 +413,8 @@ export class CsvCell extends CsvEntity<string> {
             }
         }
 
-        if (isEscaped) {
-            this.byteBuffer.expect(escapeChar) // consume closing quote
+        if (isQuoted) {
+            this.byteBuffer.expect(quoteChar) // consume closing quote
         }
 
         if (this.byteBuffer.peek() === separator) {
