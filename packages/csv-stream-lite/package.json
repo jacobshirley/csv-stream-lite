@@ -63,7 +63,7 @@
         "@vitest/browser-playwright": "^4.0.16",
         "@vitest/coverage-v8": "^4.0.16",
         "playwright": "^1.57.0",
-        "typescript": "^5.9.3",
+        "typescript": "^6.0.0",
         "vitest": "^4.0.16"
     },
     "files": [
