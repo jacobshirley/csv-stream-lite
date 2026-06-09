@@ -31,12 +31,12 @@
         "@types/node": "^24.10.4",
         "husky": "^9.1.7",
         "lint-staged": "^16.2.7",
-        "playwright": "^1.57.0",
+        "playwright": "^1.60.0",
         "prettier": "^3.7.4",
         "tsx": "^4.21.0",
         "typedoc": "^0.28.15",
         "typedoc-plugin-markdown": "^4.9.0",
-        "typescript": "^5.9.3"
+        "typescript": "^6.0.0"
     },
     "dependencies": {
         "csv-stream-lite": "1.0.4"
