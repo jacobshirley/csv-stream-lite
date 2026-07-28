@@ -4,15 +4,13 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-packageExtensionsChecksum: sha256-fs+wgeupzGGg0M6KwlbG5R01NsuvBcnqoXO88MxaUls=
-
 importers:
 
   .:
     dependencies:
       csv-stream-lite:
         specifier: 1.0.4
-        version: link:packages/csv-stream-lite
+        version: 1.0.4
     devDependencies:
       '@commitlint/cli':
         specifier: ^21.0.0
@@ -52,13 +50,13 @@ importers:
     devDependencies:
       '@vitest/browser':
         specifier: ^4.0.16
-        version: 4.0.16(@vitest/runner@4.0.16)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)
+        version: 4.0.16(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)
       '@vitest/browser-playwright':
         specifier: ^4.0.16
-        version: 4.0.16(@vitest/runner@4.0.16)(playwright@1.60.0)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)
+        version: 4.0.16(playwright@1.60.0)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)
       '@vitest/coverage-v8':
         specifier: ^4.0.16
-        version: 4.0.16(@vitest/browser@4.0.16(@vitest/runner@4.0.16)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16))(vitest@4.0.16)
+        version: 4.0.16(@vitest/browser@4.0.16(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16))(supports-color@7.2.0)(vitest@4.0.16)
       playwright:
         specifier: ^1.60.0
         version: 1.60.0
@@ -527,7 +525,6 @@ packages:
   '@vitest/browser@4.0.16':
     resolution: {integrity: sha512-t4toy8X/YTnjYEPoY0pbDBg3EvDPg1elCDrfc+VupPHwoN/5/FNQ8Z+xBYIaEnOE2vVEyKwqYBzZ9h9rJtZVcg==}
     peerDependencies:
-      '@vitest/runner': '*'
       vitest: 4.0.16
 
   '@vitest/coverage-v8@4.0.16':
@@ -640,6 +637,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  csv-stream-lite@1.0.4:
+    resolution: {integrity: sha512-RIL9it8pD7kUUzG/WQyg6V/JE70soQGy2jsl1m1FcYJdYq7GEdXiZ9nk+q+6xPQBSp/qX3Wlt18sD26ShWmaow==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -1475,24 +1475,22 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
-  '@vitest/browser-playwright@4.0.16(@vitest/runner@4.0.16)(playwright@1.60.0)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)':
+  '@vitest/browser-playwright@4.0.16(playwright@1.60.0)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)':
     dependencies:
-      '@vitest/browser': 4.0.16(@vitest/runner@4.0.16)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)
+      '@vitest/browser': 4.0.16(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)
       '@vitest/mocker': 4.0.16(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
       playwright: 1.60.0
       tinyrainbow: 3.0.3
       vitest: 4.0.16(@types/node@24.10.4)(@vitest/browser-playwright@4.0.16)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0)
     transitivePeerDependencies:
-      - '@vitest/runner'
       - bufferutil
       - msw
       - utf-8-validate
       - vite
 
-  '@vitest/browser@4.0.16(@vitest/runner@4.0.16)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)':
+  '@vitest/browser@4.0.16(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)':
     dependencies:
       '@vitest/mocker': 4.0.16(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))
-      '@vitest/runner': 4.0.16
       '@vitest/utils': 4.0.16
       magic-string: 0.30.21
       pixelmatch: 7.1.0
@@ -1507,14 +1505,14 @@ snapshots:
       - utf-8-validate
       - vite
 
-  '@vitest/coverage-v8@4.0.16(@vitest/browser@4.0.16(@vitest/runner@4.0.16)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16))(vitest@4.0.16)':
+  '@vitest/coverage-v8@4.0.16(@vitest/browser@4.0.16(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16))(supports-color@7.2.0)(vitest@4.0.16)':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
       '@vitest/utils': 4.0.16
       ast-v8-to-istanbul: 0.3.9
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
-      istanbul-lib-source-maps: 5.0.6
+      istanbul-lib-source-maps: 5.0.6(supports-color@7.2.0)
       istanbul-reports: 3.2.0
       magicast: 0.5.1
       obug: 2.1.1
@@ -1522,7 +1520,7 @@ snapshots:
       tinyrainbow: 3.0.3
       vitest: 4.0.16(@types/node@24.10.4)(@vitest/browser-playwright@4.0.16)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0)
     optionalDependencies:
-      '@vitest/browser': 4.0.16(@vitest/runner@4.0.16)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)
+      '@vitest/browser': 4.0.16(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)
     transitivePeerDependencies:
       - supports-color
 
@@ -1633,9 +1631,13 @@ snapshots:
     optionalDependencies:
       typescript: 6.0.3
 
-  debug@4.4.3:
+  csv-stream-lite@1.0.4: {}
+
+  debug@4.4.3(supports-color@7.2.0):
     dependencies:
       ms: 2.1.3
+    optionalDependencies:
+      supports-color: 7.2.0
 
   emoji-regex@10.6.0: {}
 
@@ -1692,9 +1694,9 @@ snapshots:
 
   fast-uri@3.1.0: {}
 
-  fdir@6.5.0(picomatch@4.0.3):
+  fdir@6.5.0(picomatch@4.0.5):
     optionalDependencies:
-      picomatch: 4.0.3
+      picomatch: 4.0.5
 
   fsevents@2.3.2:
     optional: true
@@ -1739,10 +1741,10 @@ snapshots:
       make-dir: 4.0.0
       supports-color: 7.2.0
 
-  istanbul-lib-source-maps@5.0.6:
+  istanbul-lib-source-maps@5.0.6(supports-color@7.2.0):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
-      debug: 4.4.3
+      debug: 4.4.3(supports-color@7.2.0)
       istanbul-lib-coverage: 3.2.2
     transitivePeerDependencies:
       - supports-color
@@ -1943,8 +1945,8 @@ snapshots:
 
   tinyglobby@0.2.15:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.3)
-      picomatch: 4.0.3
+      fdir: 6.5.0(picomatch@4.0.5)
+      picomatch: 4.0.5
 
   tinyrainbow@3.0.3: {}
 
@@ -1979,8 +1981,8 @@ snapshots:
   vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0):
     dependencies:
       esbuild: 0.27.2
-      fdir: 6.5.0(picomatch@4.0.3)
-      picomatch: 4.0.3
+      fdir: 6.5.0(picomatch@4.0.5)
+      picomatch: 4.0.5
       postcss: 8.5.6
       rollup: 4.54.0
       tinyglobby: 0.2.15
@@ -2015,7 +2017,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 24.10.4
-      '@vitest/browser-playwright': 4.0.16(@vitest/runner@4.0.16)(playwright@1.60.0)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)
+      '@vitest/browser-playwright': 4.0.16(playwright@1.60.0)(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.9.0))(vitest@4.0.16)
     transitivePeerDependencies:
       - jiti
       - less
