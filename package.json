@@ -40,14 +40,5 @@
     },
     "dependencies": {
         "csv-stream-lite": "1.0.4"
-    },
-    "pnpm": {
-        "packageExtensions": {
-            "@vitest/browser": {
-                "peerDependencies": {
-                    "@vitest/runner": "*"
-                }
-            }
-        }
     }
 }
