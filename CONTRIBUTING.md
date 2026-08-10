@@ -9,6 +9,10 @@ cd csv-stream-lite
 pnpm install
 ```
 
+If you have Nix with flakes enabled, `nix develop` drops you into a shell
+with the right Node/pnpm versions and working Playwright browsers (useful on
+NixOS, where the Playwright-downloaded browsers don't run out of the box).
+
 ## Development
 
 ```bash

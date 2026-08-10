@@ -1,6 +1,9 @@
 .DS_Store
 Thumbs.db
 
+# Nix dev shell
+.corepack-bin
+
 # Logs
 logs
 *.log
