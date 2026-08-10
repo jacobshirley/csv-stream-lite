@@ -526,6 +526,62 @@ describe('CSV parsing', () => {
         })
     })
 
+    describe('Static helpers', () => {
+        const csv = `name,age,city\nAlice,30,New York\nBob,25,Los Angeles`
+        const shape = { name: String, age: Number, city: String }
+        const expected = [
+            { name: 'Alice', age: 30, city: 'New York' },
+            { name: 'Bob', age: 25, city: 'Los Angeles' },
+        ]
+
+        it('Csv.parse should parse a CSV string directly into a typed array', () => {
+            const rows = Csv.parse<{
+                name: string
+                age: number
+                city: string
+            }>(csv, { shape })
+
+            expect(rows).toEqual(expected)
+        })
+
+        it('Csv.stream should instantiate a Csv instance for streaming', () => {
+            const instance = Csv.stream<{
+                name: string
+                age: number
+                city: string
+            }>(csv, { shape })
+
+            expect(instance).toBeInstanceOf(Csv)
+            expect([...instance.streamObjects()]).toEqual(expected)
+        })
+
+        it('Csv.parseAsync should parse a CSV string directly into a typed array', async () => {
+            const rows = await Csv.parseAsync<{
+                name: string
+                age: number
+                city: string
+            }>(csv, { shape })
+
+            expect(rows).toEqual(expected)
+        })
+
+        it('Csv.streamAsync should instantiate a Csv instance for streaming', async () => {
+            const instance = Csv.streamAsync<{
+                name: string
+                age: number
+                city: string
+            }>(csv, { shape })
+
+            expect(instance).toBeInstanceOf(Csv)
+
+            const rows: Array<{ name: string; age: number; city: string }> = []
+            for await (const row of instance.streamObjectsAsync()) {
+                rows.push(row)
+            }
+            expect(rows).toEqual(expected)
+        })
+    })
+
     describe('Edge cases', () => {
         it('should handle empty cells', () => {
             const csv = `name,age,city\nAlice,,New York\n,Bob,25,Los Angeles`
