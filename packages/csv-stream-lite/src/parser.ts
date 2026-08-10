@@ -669,6 +669,137 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
         this.transform = options?.transform
     }
 
+    /**
+     * Static helper to create a {@link Csv} instance for streaming usage.
+     * Equivalent to calling `new Csv(...)` directly.
+     *
+     * @typeParam T - The object type for each row when reading as objects
+     * @typeParam I - The intermediate row type before transformation
+     * @param asyncIterable - Optional byte stream or buffer containing CSV data
+     * @param options - Configuration options for CSV parsing
+     * @returns A new {@link Csv} instance
+     *
+     * @example
+     * ```typescript
+     * for await (const row of Csv.stream(fileStream).streamObjectsAsync()) {
+     *   console.log(row)
+     * }
+     * ```
+     */
+    static stream<T extends object, I = unknown>(
+        asyncIterable?: ByteStream<T> | ByteBuffer,
+        options?: CsvEntityOptions & {
+            includeExtraCells?: boolean
+            ignoreUtf8Bom?: boolean
+            readHeaders?: boolean
+            headers?: string[]
+            shape?: CsvObjectShape<T>
+            strictColumns?: boolean
+            transform?: (row: I) => T
+        },
+    ): Csv<T, I> {
+        return new Csv(asyncIterable, options)
+    }
+
+    /**
+     * Static helper to parse a complete CSV string (or byte stream) into an
+     * array of typed objects in one call.
+     *
+     * @typeParam T - The object type for each row
+     * @typeParam I - The intermediate row type before transformation
+     * @param asyncIterable - The CSV data to parse
+     * @param options - Configuration options for CSV parsing
+     * @returns An array of parsed objects of type T
+     *
+     * @example
+     * ```typescript
+     * const rows = Csv.parse<{ name: string; age: number }>(csvString, {
+     *   shape: { name: String, age: Number },
+     * })
+     * ```
+     */
+    static parse<T extends object, I = unknown>(
+        asyncIterable?: ByteStream<T> | ByteBuffer,
+        options?: CsvEntityOptions & {
+            includeExtraCells?: boolean
+            ignoreUtf8Bom?: boolean
+            readHeaders?: boolean
+            headers?: string[]
+            shape?: CsvObjectShape<T>
+            strictColumns?: boolean
+            transform?: (row: I) => T
+        },
+    ): T[] {
+        return Csv.stream(asyncIterable, options).read()
+    }
+
+    /**
+     * Async counterpart to {@link Csv.stream}. Provided for API symmetry with
+     * {@link Csv.parseAsync}; since constructing a {@link Csv} instance is
+     * synchronous, this simply returns the new instance directly (not wrapped
+     * in a Promise) so it can be used the same way as {@link Csv.stream}.
+     *
+     * @typeParam T - The object type for each row when reading as objects
+     * @typeParam I - The intermediate row type before transformation
+     * @param asyncIterable - Optional byte stream or buffer containing CSV data
+     * @param options - Configuration options for CSV parsing
+     * @returns A new {@link Csv} instance
+     *
+     * @example
+     * ```typescript
+     * for await (const row of Csv.streamAsync(fileStream).streamObjectsAsync()) {
+     *   console.log(row)
+     * }
+     * ```
+     */
+    static streamAsync<T extends object, I = unknown>(
+        asyncIterable?: ByteStream<T> | ByteBuffer,
+        options?: CsvEntityOptions & {
+            includeExtraCells?: boolean
+            ignoreUtf8Bom?: boolean
+            readHeaders?: boolean
+            headers?: string[]
+            shape?: CsvObjectShape<T>
+            strictColumns?: boolean
+            transform?: (row: I) => T
+        },
+    ): Csv<T, I> {
+        return new Csv(asyncIterable, options)
+    }
+
+    /**
+     * Async counterpart to {@link Csv.parse}. Parses a complete CSV string
+     * (or byte stream) into an array of typed objects, awaiting data as it
+     * arrives.
+     *
+     * @typeParam T - The object type for each row
+     * @typeParam I - The intermediate row type before transformation
+     * @param asyncIterable - The CSV data to parse
+     * @param options - Configuration options for CSV parsing
+     * @returns A promise that resolves to an array of parsed objects of type T
+     *
+     * @example
+     * ```typescript
+     * const rows = await Csv.parseAsync<{ name: string; age: number }>(fileStream, {
+     *   shape: { name: String, age: Number },
+     * })
+     * ```
+     */
+    static async parseAsync<T extends object, I = unknown>(
+        asyncIterable?: ByteStream<T> | ByteBuffer,
+        options?: CsvEntityOptions & {
+            includeExtraCells?: boolean
+            ignoreUtf8Bom?: boolean
+            readHeaders?: boolean
+            headers?: string[]
+            shape?: CsvObjectShape<T>
+            strictColumns?: boolean
+            transform?: (row: I) => T
+        },
+    ): Promise<T[]> {
+        return Csv.stream(asyncIterable, options).readAsync()
+    }
+
     private readBom(): void {
         // Skip UTF-8 BOM if present
         while (
