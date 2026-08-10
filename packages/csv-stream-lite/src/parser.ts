@@ -608,6 +608,32 @@ export class CsvRow<T extends object = object, I = unknown> extends CsvEntity<
  * }
  * ```
  */
+/**
+ * Options for configuring a {@link Csv} parser.
+ *
+ * @typeParam T - The object type for each row when reading as objects
+ * @typeParam I - The intermediate row type before transformation
+ */
+export interface CsvOptions<
+    T extends object,
+    I = unknown,
+> extends CsvEntityOptions {
+    /** Whether to include extra cells beyond defined headers. Defaults to false */
+    includeExtraCells?: boolean
+    /** Whether to skip a leading UTF-8 BOM if present. Defaults to true */
+    ignoreUtf8Bom?: boolean
+    /** Whether to treat the first row as a header row. Defaults to true */
+    readHeaders?: boolean
+    /** Explicit headers to use instead of reading them from the first row */
+    headers?: string[]
+    /** Shape definition mapping headers to type transformers */
+    shape?: CsvObjectShape<T>
+    /** Whether to enforce exact column count matching headers. Defaults to false */
+    strictColumns?: boolean
+    /** Optional function to transform each parsed row */
+    transform?: (row: I) => T
+}
+
 export class Csv<T extends object, I = unknown> extends CsvEntity<
     T[],
     CsvRow<T, I>
@@ -629,15 +655,7 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
      */
     constructor(
         asyncIterable?: ByteStream<T> | ByteBuffer,
-        options?: CsvEntityOptions & {
-            includeExtraCells?: boolean
-            ignoreUtf8Bom?: boolean
-            readHeaders?: boolean
-            headers?: string[]
-            shape?: CsvObjectShape<T>
-            strictColumns?: boolean
-            transform?: (row: I) => T
-        },
+        options?: CsvOptions<T, I>,
     ) {
         super(asyncIterable, options)
 
@@ -688,15 +706,7 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
      */
     static stream<T extends object, I = unknown>(
         asyncIterable?: ByteStream<T> | ByteBuffer,
-        options?: CsvEntityOptions & {
-            includeExtraCells?: boolean
-            ignoreUtf8Bom?: boolean
-            readHeaders?: boolean
-            headers?: string[]
-            shape?: CsvObjectShape<T>
-            strictColumns?: boolean
-            transform?: (row: I) => T
-        },
+        options?: CsvOptions<T, I>,
     ): Csv<T, I> {
         return new Csv(asyncIterable, options)
     }
@@ -720,15 +730,7 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
      */
     static parse<T extends object, I = unknown>(
         asyncIterable?: ByteStream<T> | ByteBuffer,
-        options?: CsvEntityOptions & {
-            includeExtraCells?: boolean
-            ignoreUtf8Bom?: boolean
-            readHeaders?: boolean
-            headers?: string[]
-            shape?: CsvObjectShape<T>
-            strictColumns?: boolean
-            transform?: (row: I) => T
-        },
+        options?: CsvOptions<T, I>,
     ): T[] {
         return Csv.stream(asyncIterable, options).read()
     }
@@ -754,15 +756,7 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
      */
     static streamAsync<T extends object, I = unknown>(
         asyncIterable?: ByteStream<T> | ByteBuffer,
-        options?: CsvEntityOptions & {
-            includeExtraCells?: boolean
-            ignoreUtf8Bom?: boolean
-            readHeaders?: boolean
-            headers?: string[]
-            shape?: CsvObjectShape<T>
-            strictColumns?: boolean
-            transform?: (row: I) => T
-        },
+        options?: CsvOptions<T, I>,
     ): Csv<T, I> {
         return new Csv(asyncIterable, options)
     }
@@ -787,15 +781,7 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
      */
     static async parseAsync<T extends object, I = unknown>(
         asyncIterable?: ByteStream<T> | ByteBuffer,
-        options?: CsvEntityOptions & {
-            includeExtraCells?: boolean
-            ignoreUtf8Bom?: boolean
-            readHeaders?: boolean
-            headers?: string[]
-            shape?: CsvObjectShape<T>
-            strictColumns?: boolean
-            transform?: (row: I) => T
-        },
+        options?: CsvOptions<T, I>,
     ): Promise<T[]> {
         return Csv.stream(asyncIterable, options).readAsync()
     }
