@@ -11,8 +11,8 @@ importers:
   .:
     dependencies:
       csv-stream-lite:
-        specifier: 1.0.4
-        version: 1.0.4
+        specifier: workspace:*
+        version: link:packages/csv-stream-lite
     devDependencies:
       '@commitlint/cli':
         specifier: ^21.0.0
@@ -640,9 +640,6 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
-
-  csv-stream-lite@1.0.4:
-    resolution: {integrity: sha512-RIL9it8pD7kUUzG/WQyg6V/JE70soQGy2jsl1m1FcYJdYq7GEdXiZ9nk+q+6xPQBSp/qX3Wlt18sD26ShWmaow==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -1635,8 +1632,6 @@ snapshots:
       parse-json: 5.2.0
     optionalDependencies:
       typescript: 6.0.3
-
-  csv-stream-lite@1.0.4: {}
 
   debug@4.4.3(supports-color@7.2.0):
     dependencies:
