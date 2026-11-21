@@ -14,6 +14,12 @@ export class NoMoreTokensError extends CsvStreamLiteError {}
 export class EofReachedError extends CsvStreamLiteError {}
 
 /**
+ * Error thrown when the input ends inside a quoted field (the closing quote is missing).
+ * Extends {@link EofReachedError}, so existing `instanceof EofReachedError` checks keep working.
+ */
+export class UnterminatedQuotedFieldError extends EofReachedError {}
+
+/**
  * Error thrown when the buffer size limit is exceeded.
  */
 export class BufferSizeExceededError extends CsvStreamLiteError {}
