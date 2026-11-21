@@ -645,6 +645,9 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
     readHeaders: boolean = true
     strictColumns: boolean = false
     transform?: (row: I) => T
+    /** Headers resolved from the first row (or options); set once by streamObjects() */
+    private resolvedHeaders?: string[]
+    private nextRowIndex: number = 1
 
     /**
      * Creates a new CSV parser.
@@ -841,21 +844,30 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
      */
     *streamObjects(): Generator<T> {
         const stream = this.stream()
-        let headers: string[] = this.headers ?? []
 
-        if (this.readHeaders) {
-            const headerRow = stream.next()
-            if (headerRow.done) {
-                return // No data
-            }
-            const foundHeaders = headerRow.value.read()
+        // Headers are resolved once per Csv instance: streamObjectsAsync()
+        // restarts this generator after every buffer refill, and must not
+        // read another header row (or reset the row index) each time.
+        if (this.resolvedHeaders === undefined) {
+            let headers: string[] = this.headers ?? []
 
-            if (headers.length === 0) {
-                headers = foundHeaders
+            if (this.readHeaders) {
+                const headerRow = stream.next()
+                if (headerRow.done) {
+                    return // No data
+                }
+                const foundHeaders = headerRow.value.read()
+
+                if (headers.length === 0) {
+                    headers = foundHeaders
+                }
             }
+
+            this.resolvedHeaders = headers
+            this.nextRowIndex = this.readHeaders ? 2 : 1
         }
 
-        let rowIndex = this.readHeaders ? 2 : 1
+        const headers = this.resolvedHeaders
 
         while (true) {
             const currentRow = stream.next()
@@ -864,14 +876,17 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
                 return // No more data
             }
 
-            yield currentRow.value.readObject({
+            const obj = currentRow.value.readObject({
                 headers: headers,
                 shape: this.shape,
                 includeExtraCells: this.includeExtraCells,
                 strictColumns: this.strictColumns,
-                rowIndex: rowIndex++,
+                rowIndex: this.nextRowIndex,
                 transform: this.transform,
             })
+            this.nextRowIndex++
+
+            yield obj
         }
     }
 

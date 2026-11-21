@@ -902,4 +902,59 @@ describe('CSV parsing', () => {
             ])
         })
     })
+
+    describe('Async object parsing across buffer refills (#45)', () => {
+        function makeCsv(rows: number): string {
+            let csv = 'id,name\n'
+            for (let i = 0; i < rows; i++) csv += `${i},n${i}\n`
+            return csv
+        }
+
+        async function* chunksOf(str: string, size: number) {
+            const bytes = new TextEncoder().encode(str)
+            for (let i = 0; i < bytes.length; i += size) {
+                yield bytes.slice(i, i + size)
+            }
+        }
+
+        it('reads headers once when input exceeds the buffer size', async () => {
+            const csv = makeCsv(12000)
+            expect(csv.length).toBeGreaterThan(100 * 1024)
+
+            const rows = await Csv.parseAsync(chunksOf(csv, 65536))
+            expect(rows.length).toBe(12000)
+            expect(rows[0]).toEqual({ id: '0', name: 'n0' })
+            expect(rows[11791]).toEqual({ id: '11791', name: 'n11791' })
+            expect(rows.at(-1)).toEqual({ id: '11999', name: 'n11999' })
+            expect(rows).toEqual(Csv.parse(csv))
+        })
+
+        it('does not consume data rows as headers when headers are given', async () => {
+            const csv = makeCsv(12000)
+            const rows = await Csv.parseAsync(chunksOf(csv, 65536), {
+                headers: ['a', 'b'],
+            })
+            expect(rows.length).toBe(12000)
+            expect(rows[11791]).toEqual({ a: '11791', b: 'n11791' })
+        })
+
+        it('works with a small maxBufferSize and tiny chunks', async () => {
+            const csv = makeCsv(200)
+            const parser = new Csv(chunksOf(csv, 7))
+            parser.maxBufferSize = 16
+            const rows: unknown[] = []
+            for await (const row of parser.streamObjectsAsync()) {
+                rows.push(row)
+            }
+            expect(rows.length).toBe(200)
+            expect(rows[199]).toEqual({ id: '199', name: 'n199' })
+        })
+
+        it('reports correct row numbers in errors after a refill', async () => {
+            const csv = makeCsv(300) + '1,2,3\n'
+            const parser = new Csv(chunksOf(csv, 50), { strictColumns: true })
+            parser.maxBufferSize = 64
+            await expect(parser.readAsync()).rejects.toThrowError(/row 302/)
+        })
+    })
 })
