@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CsvStringify } from '../../src'
+import { Csv, CsvStringify } from '../../src'
 
 describe('CSV Stringify', () => {
     it('should stringify an array of objects to CSV format', () => {
@@ -127,5 +127,32 @@ describe('CSV Stringify', () => {
         })
 
         expect(result.toString()).toBe(expectedCsv)
+    })
+
+    describe('single-column empty values (#55)', () => {
+        it('quotes an empty value so it does not become a skipped blank line', () => {
+            const out = [
+                ...Csv.stringify([{ a: '' }, { a: 'x' }, { a: '' }]),
+            ].join('')
+            expect(out).toBe('a\n""\nx\n""')
+        })
+
+        it('round-trips single-column data with empty values', () => {
+            const rows = [{ a: '' }, { a: 'x' }, { a: '' }]
+            const out = [...Csv.stringify(rows)].join('')
+            expect(Csv.parse(out)).toEqual(rows)
+        })
+
+        it('does not quote empty values in multi-column data', () => {
+            const out = [...Csv.stringify([{ a: '', b: 'y' }])].join('')
+            expect(out).toBe('a,b\n,y')
+        })
+
+        it('uses the configured quote character', () => {
+            const out = [
+                ...Csv.stringify([{ a: '' }], { quoteChar: "'" }),
+            ].join('')
+            expect(out).toBe("a\n''")
+        })
     })
 })
