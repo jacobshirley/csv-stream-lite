@@ -74,7 +74,13 @@ export class CsvStringify<T extends object = object, O extends object = T> {
         this.transform = options?.transform
     }
 
-    private formatField(field: string): string {
+    private formatField(field: string, singleColumn: boolean = false): string {
+        // In a single-column file an empty value would be written as a blank
+        // line, which parsers skip, so the record would be lost. Quote it.
+        if (singleColumn && field === '') {
+            return this.quoteChar + this.quoteChar
+        }
+
         const needsQuoting =
             field.includes(this.delimiter) ||
             field.includes('\n') ||
@@ -105,7 +111,7 @@ export class CsvStringify<T extends object = object, O extends object = T> {
         if (firstRecord) {
             // Output header row
             for (const header of headers) {
-                const fieldStr = this.formatField(header)
+                const fieldStr = this.formatField(header, headers.length === 1)
                 if (index > 0) {
                     yield this.delimiter
                 }
@@ -119,6 +125,7 @@ export class CsvStringify<T extends object = object, O extends object = T> {
         for (let i = 0; i < headers.length; i++) {
             const fieldStr = this.formatField(
                 String(record[recordKeys[i] as keyof typeof record] ?? ''),
+                headers.length === 1,
             )
             if (index > 0) {
                 yield this.delimiter
