@@ -902,4 +902,44 @@ describe('CSV parsing', () => {
             ])
         })
     })
+
+    describe('Multi-byte UTF-8 in large cells (#50)', () => {
+        const encode = (s: string) => new TextEncoder().encode(s)
+
+        it('does not corrupt characters straddling the internal piece boundary', () => {
+            const value = 'x' + 'é'.repeat(8000) // 16,001 bytes
+            const [cell, other] = new CsvRow(value + ',b').read()
+            expect(cell).toBe(value)
+            expect(cell.length).toBe(8001)
+            expect(other).toBe('b')
+        })
+
+        it('handles 3- and 4-byte characters at every alignment', () => {
+            for (const ch of ['€', '😀']) {
+                for (let pad = 0; pad < 4; pad++) {
+                    const value = 'x'.repeat(pad) + ch.repeat(6000)
+                    expect(new CsvRow(`${value},b`).read()).toEqual([
+                        value,
+                        'b',
+                    ])
+                    expect(new CsvRow(`"${value}",b`).read()).toEqual([
+                        value,
+                        'b',
+                    ])
+                }
+            }
+        })
+
+        it('works for async input split at arbitrary bytes', async () => {
+            const value = 'x' + 'é'.repeat(8000)
+            const bytes = encode(`${value},b\n`)
+            async function* gen() {
+                for (let i = 0; i < bytes.length; i += 4097) {
+                    yield bytes.slice(i, i + 4097)
+                }
+            }
+            const row = new CsvRow(gen())
+            expect(await row.readAsync()).toEqual([value, 'b'])
+        })
+    })
 })

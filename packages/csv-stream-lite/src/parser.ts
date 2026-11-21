@@ -295,6 +295,15 @@ export class CsvCell extends CsvEntity<string> {
         }
     }
 
+    /**
+     * Whether the next byte is a UTF-8 continuation byte (10xxxxxx), i.e.
+     * the previous byte is in the middle of a multi-byte character.
+     */
+    private isContinuationNext(): boolean {
+        const next = this.byteBuffer.peek()
+        return next !== null && (next & 0xc0) === 0x80
+    }
+
     protected parse(): string {
         let str = ''
 
@@ -406,7 +415,9 @@ export class CsvCell extends CsvEntity<string> {
 
             const nextByte = this.byteBuffer.next()
             chunk.push(nextByte)
-            if (chunk.length >= this.chunkSize) {
+            if (chunk.length >= this.chunkSize && !this.isContinuationNext()) {
+                // Only cut a piece on a character boundary: decoding the bytes
+                // of a multi-byte UTF-8 character in separate pieces corrupts it.
                 yield bytesToString(new Uint8Array(chunk))
                 chunk = []
                 hadData = true
