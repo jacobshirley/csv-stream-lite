@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CsvStringify } from '../../src'
+import { Csv, CsvStringify } from '../../src'
 
 describe('CSV Stringify', () => {
     it('should stringify an array of objects to CSV format', () => {
@@ -127,5 +127,42 @@ describe('CSV Stringify', () => {
         })
 
         expect(result.toString()).toBe(expectedCsv)
+    })
+
+    describe('non-default quote, escape and newline options (#52)', () => {
+        const str = (rows: object[], options?: object) =>
+            [...Csv.stringify(rows, options)].join('')
+
+        it.each(['*', '.', '|', '$', '^', '+', '?', '(', '[', '\\'])(
+            'supports regex-special quote character %j',
+            (q) => {
+                const value = `x${q}y,z`
+                const out = str([{ a: value }], { quoteChar: q })
+                expect(out).toBe(`a\n${q}x${q}${q}y,z${q}`)
+                expect(Csv.parse(out, { quoteChar: q, escapeChar: q })).toEqual(
+                    [{ a: value }],
+                )
+            },
+        )
+
+        it('defaults the escape character to the quote character', () => {
+            expect(str([{ a: "it's,x" }], { quoteChar: "'" })).toBe(
+                "a\n'it''s,x'",
+            )
+        })
+
+        it('escapes the escape character when it differs from the quote', () => {
+            const value = 'back\\slash,"'
+            const out = str([{ a: value }], { escapeChar: '\\' })
+            expect(out).toBe('a\n"back\\\\slash,\\""')
+            expect(
+                Csv.parse(out, { escapeChar: '\\', quoteChar: '"' }),
+            ).toEqual([{ a: value }])
+        })
+
+        it('quotes fields containing a custom newline', () => {
+            const out = str([{ a: 'x|y' }, { a: 'z' }], { newline: '|' })
+            expect(out).toBe('a|"x|y"|z')
+        })
     })
 })
