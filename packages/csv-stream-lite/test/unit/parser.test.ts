@@ -902,4 +902,47 @@ describe('CSV parsing', () => {
             ])
         })
     })
+
+    describe('Option validation (#53)', () => {
+        it('rejects multi-character separators', () => {
+            expect(() => new CsvRow('a||b', { separator: '||' })).toThrowError(
+                /separator/,
+            )
+        })
+
+        it('rejects non-ASCII separators', () => {
+            expect(() => new CsvRow('a§b', { separator: '§' })).toThrowError(
+                /separator/,
+            )
+        })
+
+        it('rejects multi-character and non-ASCII quote and escape characters', () => {
+            expect(() => new Csv('a', { quoteChar: '""' })).toThrowError(
+                /quoteChar/,
+            )
+            expect(() => new Csv('a', { quoteChar: '«' })).toThrowError(
+                /quoteChar/,
+            )
+            expect(() => new Csv('a', { escapeChar: '\\\\' })).toThrowError(
+                /escapeChar/,
+            )
+            expect(() => new Csv('a', { escapeChar: '€' })).toThrowError(
+                /escapeChar/,
+            )
+        })
+
+        it('rejects non-ASCII newlines', () => {
+            expect(() => new Csv('a', { newline: '↵' })).toThrowError(/newline/)
+        })
+
+        it('still accepts single ASCII characters and multi-character ASCII newlines', () => {
+            expect(new CsvRow('a;b', { separator: ';' }).read()).toEqual([
+                'a',
+                'b',
+            ])
+            expect(
+                Csv.parse('a|b<EOL>1|2', { separator: '|', newline: '<EOL>' }),
+            ).toEqual([{ a: '1', b: '2' }])
+        })
+    })
 })
