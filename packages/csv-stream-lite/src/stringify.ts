@@ -8,7 +8,7 @@ export interface CsvStringifyOptions<
     headers?: string[] | CsvObjectShape<T>
     /** Character to separate fields (default: ',') */
     delimiter?: string
-    /** Character to escape special characters (default: '"') */
+    /** Character to escape special characters (default: the quote character) */
     escapeChar?: string
     /** Character to quote fields (default: '"') */
     quoteChar?: string
@@ -66,8 +66,9 @@ export class CsvStringify<T extends object = object, O extends object = T> {
                 : Object.keys(options.headers)
             : undefined
         this.delimiter = options?.delimiter ?? ','
-        this.escapeChar = options?.escapeChar ?? '"'
         this.quoteChar = options?.quoteChar ?? '"'
+        // The escape character defaults to the quote character (doubling it)
+        this.escapeChar = options?.escapeChar ?? this.quoteChar
         this.newline = options?.newline ?? '\n'
         this.writeBom = options?.writeBom ?? false
         this.alwaysWriteHeaders = options?.alwaysWriteHeaders ?? false
@@ -75,17 +76,28 @@ export class CsvStringify<T extends object = object, O extends object = T> {
     }
 
     private formatField(field: string): string {
+        const escapeDiffers = this.escapeChar !== this.quoteChar
+
         const needsQuoting =
             field.includes(this.delimiter) ||
             field.includes('\n') ||
             field.includes('\r') ||
-            field.includes(this.quoteChar)
+            field.includes(this.newline) ||
+            field.includes(this.quoteChar) ||
+            (escapeDiffers && field.includes(this.escapeChar))
 
         if (needsQuoting) {
-            field = field.replace(
-                new RegExp(this.quoteChar, 'g'),
-                this.escapeChar + this.quoteChar,
-            )
+            // Plain string splitting rather than a RegExp, so that quote and
+            // escape characters that are special in regular expressions work.
+            if (escapeDiffers) {
+                // Escape the escape character itself so the value round-trips
+                field = field
+                    .split(this.escapeChar)
+                    .join(this.escapeChar + this.escapeChar)
+            }
+            field = field
+                .split(this.quoteChar)
+                .join(this.escapeChar + this.quoteChar)
             field = this.quoteChar + field + this.quoteChar
         }
 
