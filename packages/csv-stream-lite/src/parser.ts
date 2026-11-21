@@ -382,12 +382,18 @@ export class CsvCell extends CsvEntity<string> {
                         chunk.push(escapeChar)
                         continue
                     } else {
-                        // End of quoted cell
-                        break
+                        // End of quoted section: consume the closing quote and
+                        // carry on in unquoted mode, so any text before the
+                        // next separator/line end stays in this same cell.
+                        this.byteBuffer.expect(quoteChar)
+                        isQuoted = false
+                        continue
                     }
                 } else if (next === quoteChar) {
-                    // End of quoted cell when using separate quote/escape chars
-                    break
+                    // End of quoted section when using separate quote/escape chars
+                    this.byteBuffer.expect(quoteChar)
+                    isQuoted = false
+                    continue
                 } else if (next === escapeChar) {
                     // Handle escape character when different from quote char
                     const lookahead = this.byteBuffer.peek(1)
@@ -414,7 +420,8 @@ export class CsvCell extends CsvEntity<string> {
         }
 
         if (isQuoted) {
-            this.byteBuffer.expect(quoteChar) // consume closing quote
+            // Input ended inside a quoted cell: no closing quote was found
+            this.byteBuffer.expect(quoteChar)
         }
 
         if (this.byteBuffer.peek() === separator) {

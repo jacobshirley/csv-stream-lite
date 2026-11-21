@@ -902,4 +902,43 @@ describe('CSV parsing', () => {
             ])
         })
     })
+
+    describe('Text after a closing quote (#56)', () => {
+        it('keeps text after the closing quote in the same field', () => {
+            expect(new CsvRow('"x"y,2').read()).toEqual(['xy', '2'])
+            expect(new CsvRow('"x" ,2').read()).toEqual(['x ', '2'])
+        })
+
+        it('does not change the number of fields', () => {
+            expect(Csv.parse('a,b\n"x"y,2\n"p" ,3\n')).toEqual([
+                { a: 'xy', b: '2' },
+                { a: 'p ', b: '3' },
+            ])
+        })
+
+        it('treats further quotes after the closing quote literally', () => {
+            expect(new CsvRow('"x"y"z,2').read()).toEqual(['xy"z', '2'])
+        })
+
+        it('works with a separate escape character', () => {
+            expect(
+                new CsvRow('"a\\"b"c,2', {
+                    escapeChar: '\\',
+                    quoteChar: '"',
+                }).read(),
+            ).toEqual(['a"bc', '2'])
+        })
+
+        it('works when parsing asynchronously across chunks', async () => {
+            async function* gen() {
+                yield 'a,b\n"x'
+                yield '"y,2\n"p" '
+                yield ',3'
+            }
+            expect(await Csv.parseAsync(gen())).toEqual([
+                { a: 'xy', b: '2' },
+                { a: 'p ', b: '3' },
+            ])
+        })
+    })
 })
