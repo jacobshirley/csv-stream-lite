@@ -14,7 +14,9 @@ function drain(b: ByteBuffer, maxReads = 20): number {
 describe('ByteBuffer re-iterable inputs (#46)', () => {
     it('does not restart a Uint8Array on every readStream()', () => {
         const b = new ByteBuffer(new Uint8Array(250000))
-        drain(b)
+        // After the first read the buffer is over maxBufferSize, so each
+        // further read only pulls one byte.
+        drain(b, 300000)
         expect(b.eof).toBe(true)
         expect(b.length).toBe(250000)
     })
