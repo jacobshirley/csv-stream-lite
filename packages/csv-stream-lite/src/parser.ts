@@ -243,6 +243,10 @@ export abstract class CsvEntity<T, S = T> {
 export class CsvCell extends CsvEntity<string> {
     chunkSize: number = DEFAULT_CHUNK_SIZE
     endOfLineReached: boolean = false
+    /** Whether a field separator was consumed after this cell (so another cell follows in the row) */
+    separatorConsumed: boolean = false
+    /** Whether this cell is allowed to be empty at end of input (it follows a separator) */
+    allowEmptyAtEof: boolean = false
 
     /**
      * Checks if the current buffer position starts with a line ending.
@@ -360,7 +364,7 @@ export class CsvCell extends CsvEntity<string> {
         let isQuoted = false
 
         const next = this.byteBuffer.peek()
-        if (next === null && this.byteBuffer.eof) {
+        if (next === null && this.byteBuffer.eof && !this.allowEmptyAtEof) {
             throw new Error('No more data to read')
         }
 
@@ -419,9 +423,10 @@ export class CsvCell extends CsvEntity<string> {
 
         if (this.byteBuffer.peek() === separator) {
             this.byteBuffer.expect(separator) // consume separator
-        }
-
-        if (this.isAtLineEnd()) {
+            // A separator always starts another (possibly empty) cell, even
+            // when it is directly followed by a line ending or end of input.
+            this.separatorConsumed = true
+        } else if (this.isAtLineEnd()) {
             this.consumeLineEnd()
         }
 
@@ -478,13 +483,19 @@ export class CsvRow<T extends object = object, I = unknown> extends CsvEntity<
         return cells
     }
 
+    /** True when the previous cell ended with a separator, so another cell must follow */
+    private pendingCell: boolean = false
+
     protected *streamImpl(): Generator<CsvCell> {
-        while (this.byteBuffer.peek() !== null) {
+        while (this.pendingCell || this.byteBuffer.peek() !== null) {
             const cell = new CsvCell(this.byteBuffer, this)
+            cell.allowEmptyAtEof = this.pendingCell
 
             yield cell
 
             cell.consume() // Advance the buffer
+
+            this.pendingCell = cell.separatorConsumed
 
             if (cell.endOfLineReached) {
                 break
