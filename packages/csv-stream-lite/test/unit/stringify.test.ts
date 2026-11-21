@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CsvStringify } from '../../src'
+import { Csv, CsvStringify } from '../../src'
 
 describe('CSV Stringify', () => {
     it('should stringify an array of objects to CSV format', () => {
@@ -127,5 +127,48 @@ describe('CSV Stringify', () => {
         })
 
         expect(result.toString()).toBe(expectedCsv)
+    })
+
+    describe('values are written under their own header (#47)', () => {
+        const str = (rows: object[], options?: object) =>
+            [...Csv.stringify(rows, options)].join('')
+
+        it('follows explicit header order', () => {
+            expect(
+                str([{ name: 'Alice', age: 30 }], { headers: ['age', 'name'] }),
+            ).toBe('age,name\n30,Alice')
+        })
+
+        it('only writes the selected headers', () => {
+            expect(
+                str([{ name: 'Alice', age: 30, city: 'X' }], {
+                    headers: ['city'],
+                }),
+            ).toBe('city\nX')
+        })
+
+        it('is independent of key order in later records', () => {
+            expect(
+                str([
+                    { a: 1, b: 2 },
+                    { b: 20, a: 10 },
+                ]),
+            ).toBe('a,b\n1,2\n10,20')
+        })
+
+        it('writes an empty field for a missing key (rows keep the same width)', () => {
+            expect(str([{ a: 1, b: 2 }, { b: 20 }])).toBe('a,b\n1,2\n,20')
+        })
+
+        it('works for async stringification', async () => {
+            let out = ''
+            for await (const chunk of Csv.stringifyAsync([
+                { a: 1, b: 2 },
+                { b: 20, a: 10 },
+            ])) {
+                out += chunk
+            }
+            expect(out).toBe('a,b\n1,2\n10,20')
+        })
     })
 })
