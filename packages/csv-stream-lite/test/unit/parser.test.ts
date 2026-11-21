@@ -902,4 +902,41 @@ describe('CSV parsing', () => {
             ])
         })
     })
+
+    describe('Quoted cell larger than the buffer, async row API (#49)', () => {
+        async function* chunksOf(str: string, size: number) {
+            const bytes = new TextEncoder().encode(str)
+            for (let i = 0; i < bytes.length; i += size) {
+                yield bytes.slice(i, i + size)
+            }
+        }
+
+        const cell = 'x,y\n'.repeat(37500) // 150,000 chars with separators and newlines
+        const input = `h,k\n"${cell}",tail\nnext,row\n`
+
+        it('matches sync parsing when iterating rows asynchronously', async () => {
+            const syncRows: string[][] = []
+            for (const row of new Csv(input)) syncRows.push(row.read())
+            expect(syncRows.length).toBe(3)
+            expect(syncRows[1][0].length).toBe(150000)
+
+            const asyncRows: string[][] = []
+            for await (const row of new Csv(chunksOf(input, 65536))) {
+                asyncRows.push(await row.readAsync())
+            }
+            expect(asyncRows.length).toBe(3)
+            expect(asyncRows[1][0]).toBe(cell)
+            expect(asyncRows).toEqual(syncRows)
+        })
+
+        it('does not treat a quote in the middle of a large unquoted cell as an opening quote', async () => {
+            const big = 'a"b'.repeat(20000)
+            const csv = `h,k\n${big},tail\n`
+            const rows: string[][] = []
+            for await (const row of new Csv(chunksOf(csv, 65536))) {
+                rows.push(await row.readAsync())
+            }
+            expect(rows[1]).toEqual([big, 'tail'])
+        })
+    })
 })

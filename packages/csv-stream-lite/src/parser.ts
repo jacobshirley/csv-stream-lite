@@ -243,6 +243,14 @@ export abstract class CsvEntity<T, S = T> {
 export class CsvCell extends CsvEntity<string> {
     chunkSize: number = DEFAULT_CHUNK_SIZE
     endOfLineReached: boolean = false
+    /**
+     * Parse state committed at each yielded chunk. The async reader restarts
+     * the generator from the last yielded position after a buffer refill, so
+     * it must know whether it is already inside (a quoted) cell.
+     */
+    private started: boolean = false
+    private startedQuoted: boolean = false
+    private startedHadData: boolean = false
 
     /**
      * Checks if the current buffer position starts with a line ending.
@@ -356,17 +364,19 @@ export class CsvCell extends CsvEntity<string> {
         const escapeChar = this.escapeChar.charCodeAt(0)
         const quoteChar = this.quoteChar.charCodeAt(0)
         let chunk: number[] = []
-        let hadData: boolean = false
-        let isQuoted = false
+        let hadData: boolean = this.startedHadData
+        let isQuoted = this.startedQuoted
 
-        const next = this.byteBuffer.peek()
-        if (next === null && this.byteBuffer.eof) {
-            throw new Error('No more data to read')
-        }
+        if (!this.started) {
+            const next = this.byteBuffer.peek()
+            if (next === null && this.byteBuffer.eof) {
+                throw new Error('No more data to read')
+            }
 
-        if (next === quoteChar) {
-            isQuoted = true
-            this.byteBuffer.expect(quoteChar) // consume opening quote
+            if (next === quoteChar) {
+                isQuoted = true
+                this.byteBuffer.expect(quoteChar) // consume opening quote
+            }
         }
 
         while (this.byteBuffer.peek() !== null) {
@@ -407,9 +417,13 @@ export class CsvCell extends CsvEntity<string> {
             const nextByte = this.byteBuffer.next()
             chunk.push(nextByte)
             if (chunk.length >= this.chunkSize) {
-                yield bytesToString(new Uint8Array(chunk))
+                const part = bytesToString(new Uint8Array(chunk))
                 chunk = []
                 hadData = true
+                this.started = true
+                this.startedQuoted = isQuoted
+                this.startedHadData = true
+                yield part
             }
         }
 
@@ -424,6 +438,11 @@ export class CsvCell extends CsvEntity<string> {
         if (this.isAtLineEnd()) {
             this.consumeLineEnd()
         }
+
+        // The cell is complete: reset so the same instance can read the next cell
+        this.started = false
+        this.startedQuoted = false
+        this.startedHadData = false
 
         if (!hadData || chunk.length > 0)
             yield bytesToString(new Uint8Array(chunk))
