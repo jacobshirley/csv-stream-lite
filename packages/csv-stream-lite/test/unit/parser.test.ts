@@ -902,4 +902,37 @@ describe('CSV parsing', () => {
             ])
         })
     })
+
+    describe('Byte order mark handling (#51)', () => {
+        it('keeps U+FEFF at the start of cells', () => {
+            expect(new CsvRow('a,\uFEFFb,"\uFEFFc",d\uFEFFe').read()).toEqual([
+                'a',
+                '\uFEFFb',
+                '\uFEFFc',
+                'd\uFEFFe',
+            ])
+        })
+
+        it('strips a leading BOM by default', () => {
+            expect(Csv.parse('\uFEFFa,b\n1,2\n')).toEqual([{ a: '1', b: '2' }])
+        })
+
+        it('keeps the BOM when ignoreUtf8Bom is false', () => {
+            expect(
+                Csv.parse('\uFEFFa,b\n1,2\n', { ignoreUtf8Bom: false }),
+            ).toEqual([{ '\uFEFFa': '1', b: '2' }])
+        })
+
+        it('only strips a BOM at the very start of the input (async)', async () => {
+            async function* gen() {
+                yield 'a,b\n'
+                yield '\uFEFFx,2\n'
+                yield '3,4\n'
+            }
+            expect(await Csv.parseAsync(gen())).toEqual([
+                { a: '\uFEFFx', b: '2' },
+                { a: '3', b: '4' },
+            ])
+        })
+    })
 })
