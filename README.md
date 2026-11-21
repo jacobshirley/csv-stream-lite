@@ -207,6 +207,25 @@ for await (const chunk of stringifier) {
 writeStream.end()
 ```
 
+## RFC 4180 Conformance Notes
+
+csv-stream-lite follows [RFC 4180](https://www.rfc-editor.org/rfc/rfc4180) but is deliberately lenient in some places on read, and has a few writer defaults worth knowing about.
+
+### Parser leniencies
+
+- **Line endings**: bare `CR`, bare `LF`, `CRLF`, mixed endings and `LF CR` are all accepted as record separators (the RFC specifies `CRLF`). A run of consecutive line endings is treated as a single record separator, so blank lines are skipped. Use the `newline` option to force a specific (ASCII) line ending.
+- **Quotes in unquoted fields**: a double quote inside an unquoted field is kept literally (`x"y` is read as `x"y`); the RFC does not allow this.
+- **Rows with a different number of fields**: missing cells are `undefined` in object mode and extra cells are dropped by default (the RFC says every line should have the same number of fields). Use `strictColumns: true` to throw `TooFewColumnsError` / `TooManyColumnsError`, or `includeExtraCells: true` to keep extra cells as `extra_cell_N`.
+- **Empty input lines**: `\r\n` on its own gives a single row `['']` from the row API (`CsvRow`) and no rows from the object API (`Csv`).
+- **Duplicate header names**: the last column with that name wins.
+
+### Writer defaults
+
+- **Line ending**: `\n`, not `CRLF`. Pass `newline: '\r\n'` for strict RFC output.
+- **Final line break**: none is written after the last record (`[{ a: 1 }, { a: 2 }]` gives `a\n1\n2`). RFC 4180 section 2.2 allows this, but some tools expect a trailing newline.
+- **Leading and trailing spaces**: fields with leading or trailing spaces are written unquoted. The RFC does not require quoting and they round-trip.
+- **Formula injection**: values starting with `=`, `+`, `-` or `@` are written as-is. If you export untrusted data for use in spreadsheet software, sanitise those values yourself (for example with the `transform` option).
+
 ## Error Handling
 
 The library provides specific error types for different scenarios:
