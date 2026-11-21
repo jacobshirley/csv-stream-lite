@@ -25,17 +25,42 @@ const isLineEnd = (byte: number | null): boolean => {
     return byte === BYTE_MAP.lineFeed || byte === BYTE_MAP.carriageReturn
 }
 
+const isAscii = (str: string): boolean => {
+    for (let i = 0; i < str.length; i++) {
+        if (str.charCodeAt(i) > 0x7f) {
+            return false
+        }
+    }
+    return true
+}
+
+/**
+ * Throws if a delimiter-style option is set but is not exactly one ASCII character.
+ * Multi-character and non-ASCII values would be silently mis-parsed, because
+ * the parser compares individual bytes.
+ */
+function validateSingleAsciiChar(name: string, value: string | undefined) {
+    if (value === undefined || value === '') {
+        return
+    }
+    if (value.length !== 1 || !isAscii(value)) {
+        throw new Error(
+            `Invalid CSV ${name}: ${name} option must be a single ASCII character (got ${JSON.stringify(value)}).`,
+        )
+    }
+}
+
 /**
  * Options for configuring CSV entity parsing.
  */
 export interface CsvEntityOptions {
-    /** Character used to separate fields. Defaults to ',' */
+    /** Character used to separate fields. Must be a single ASCII character. Defaults to ',' */
     separator?: string
-    /** Character used to escape special characters. Defaults to '"' */
+    /** Character used to escape special characters. Must be a single ASCII character. Defaults to '"' */
     escapeChar?: string
-    /** Character used to quote fields. Defaults to escapeChar value */
+    /** Character used to quote fields. Must be a single ASCII character. Defaults to escapeChar value */
     quoteChar?: string
-    /** String used to denote new lines. Defaults to auto-detected '\r', '\n', or '\r\n' */
+    /** String used to denote new lines. Must be ASCII. Defaults to auto-detected '\r', '\n', or '\r\n' */
     newline?: string
     /** Whether to trim whitespace from fields. Defaults to false. NOTE: this option is not supported when streaming, as trimming requires buffering the entire field. */
     trim?: boolean
@@ -72,6 +97,11 @@ export abstract class CsvEntity<T, S = T> {
                 ? asyncIterable
                 : new ByteBuffer(asyncIterable)
 
+        // The parser compares single bytes, so these must be one ASCII character
+        validateSingleAsciiChar('separator', options?.separator)
+        validateSingleAsciiChar('escapeChar', options?.escapeChar)
+        validateSingleAsciiChar('quoteChar', options?.quoteChar)
+
         if (options?.separator) {
             this.separator = options.separator
         }
@@ -92,6 +122,11 @@ export abstract class CsvEntity<T, S = T> {
             if (newline === '') {
                 throw new Error(
                     'Invalid CSV newline: newline option must be a non-empty string.',
+                )
+            }
+            if (!isAscii(newline)) {
+                throw new Error(
+                    'Invalid CSV newline: newline option must only contain ASCII characters.',
                 )
             }
             if (newline.includes(this.separator)) {
