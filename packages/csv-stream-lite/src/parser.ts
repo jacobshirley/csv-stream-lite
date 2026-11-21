@@ -1,6 +1,10 @@
 import { ByteBuffer } from './byte-buffer.js'
 import { DEFAULT_CHUNK_SIZE } from './defaults.js'
-import { TooFewColumnsError, TooManyColumnsError } from './errors.js'
+import {
+    TooFewColumnsError,
+    TooManyColumnsError,
+    UnterminatedQuotedFieldError,
+} from './errors.js'
 import { CsvStringify, CsvStringifyOptions } from './stringify.js'
 import { ByteStream, CsvObjectShape, CsvString } from './types.js'
 import { bytesToString } from './utils.js'
@@ -414,6 +418,11 @@ export class CsvCell extends CsvEntity<string> {
         }
 
         if (isQuoted) {
+            if (this.byteBuffer.peek() === null) {
+                throw new UnterminatedQuotedFieldError(
+                    'Unterminated quoted field: end of input reached before the closing quote',
+                )
+            }
             this.byteBuffer.expect(quoteChar) // consume closing quote
         }
 
@@ -516,28 +525,40 @@ export class CsvRow<T extends object = object, I = unknown> extends CsvEntity<
             }, {} as CsvObjectShape<T>)
         }
 
-        for (const cell of this) {
-            if (!includeExtraCells && i >= headers.length) {
-                if (strictColumns) {
-                    throw new TooManyColumnsError(
-                        `Extra cells found${options?.rowIndex ? ` in row ${options.rowIndex}` : ''} but strictColumns is enabled`,
-                    )
+        try {
+            for (const cell of this) {
+                if (!includeExtraCells && i >= headers.length) {
+                    if (strictColumns) {
+                        throw new TooManyColumnsError(
+                            `Extra cells found${options?.rowIndex ? ` in row ${options.rowIndex}` : ''} but strictColumns is enabled`,
+                        )
+                    }
+                    cell.consume()
+                } else {
+                    const header =
+                        i >= headers.length
+                            ? `extra_cell_${i - headers.length + 1}`
+                            : headers[i]
+
+                    obj[header] = cell.read()
                 }
-                cell.consume()
-            } else {
-                const header =
-                    i >= headers.length
-                        ? `extra_cell_${i - headers.length + 1}`
-                        : headers[i]
 
-                obj[header] = cell.read()
+                i++
+
+                if (cell.endOfLineReached) {
+                    break
+                }
             }
-
-            i++
-
-            if (cell.endOfLineReached) {
-                break
+        } catch (e) {
+            if (
+                e instanceof UnterminatedQuotedFieldError &&
+                options.rowIndex !== undefined
+            ) {
+                throw new UnterminatedQuotedFieldError(
+                    `${e.message} (row ${options.rowIndex})`,
+                )
             }
+            throw e
         }
 
         for (; i < headers.length; i++) {

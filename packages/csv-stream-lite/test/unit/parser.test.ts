@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { CsvCell, Csv, CsvRow } from '../../src'
+import {
+    CsvCell,
+    Csv,
+    CsvRow,
+    EofReachedError,
+    UnterminatedQuotedFieldError,
+} from '../../src'
 
 describe('CSV parsing', () => {
     describe('Cell by cell parsing', () => {
@@ -900,6 +906,46 @@ describe('CSV parsing', () => {
                 { name: 'Alice', age: '30', city: 'New York' },
                 { name: 'Bob', age: '25', city: 'Los Angeles' },
             ])
+        })
+    })
+
+    describe('Unterminated quoted field at end of input (#48)', () => {
+        const inputs = ['a,b\r\n"x,2\r\n', 'a,b\r\n1,"', 'a\r\n"x""']
+
+        async function* gen(input: string) {
+            yield input
+        }
+
+        it.each(inputs)(
+            'throws a descriptive error in sync mode: %j',
+            (input) => {
+                expect(() => Csv.parse(input)).toThrowError(
+                    UnterminatedQuotedFieldError,
+                )
+                expect(() => Csv.parse(input)).toThrowError(
+                    /Unterminated quoted/,
+                )
+            },
+        )
+
+        it.each(inputs)(
+            'throws a descriptive error in async mode: %j',
+            async (input) => {
+                await expect(Csv.parseAsync(gen(input))).rejects.toThrowError(
+                    UnterminatedQuotedFieldError,
+                )
+            },
+        )
+
+        it('names the row and stays an EofReachedError', () => {
+            expect(() => Csv.parse('a,b\r\n1,"')).toThrowError(/row 2/)
+            expect(() => Csv.parse('a,b\r\n1,"')).toThrowError(EofReachedError)
+        })
+
+        it('throws for the low-level row API too', () => {
+            expect(() => new CsvRow('a,"b').read()).toThrowError(
+                UnterminatedQuotedFieldError,
+            )
         })
     })
 })
