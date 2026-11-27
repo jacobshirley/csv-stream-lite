@@ -54,6 +54,10 @@ export class ByteBuffer {
     protected buffer: number[] = []
     /** Optional async iterable input source */
     protected asyncIterable?: ByteStream
+    /** Cached sync iterator, so re-iterable sources (arrays, Uint8Array) are not restarted on every read */
+    private syncIterator?: Iterator<StreamInput>
+    /** Cached async iterator, so the source is not restarted on every read */
+    private asyncIterator?: AsyncIterator<StreamInput>
 
     /**
      * Creates a new ByteBuffer instance.
@@ -80,7 +84,8 @@ export class ByteBuffer {
             return false
         }
 
-        const iterator = this.asyncIterable[Symbol.iterator]()
+        const iterator = (this.syncIterator ??=
+            this.asyncIterable[Symbol.iterator]())
 
         let processed = false
         while (this.length < this.maxBufferSize || !processed) {
@@ -113,7 +118,8 @@ export class ByteBuffer {
         ) {
             return
         }
-        const iterator = this.asyncIterable[Symbol.asyncIterator]()
+        const iterator = (this.asyncIterator ??=
+            this.asyncIterable[Symbol.asyncIterator]())
 
         let processed = false
         while (this.length < this.maxBufferSize || !processed) {
