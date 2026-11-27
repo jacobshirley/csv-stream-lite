@@ -786,7 +786,15 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
         return Csv.stream(asyncIterable, options).readAsync()
     }
 
+    /** Whether the start-of-input BOM check has been done (streamImpl restarts after async refills) */
+    private bomChecked: boolean = false
+
     private readBom(): void {
+        // A BOM is only meaningful at the very start of the input
+        if (this.bomChecked) {
+            return
+        }
+
         // Skip UTF-8 BOM if present
         while (
             this.ignoreUtf8Bom &&
@@ -798,6 +806,8 @@ export class Csv<T extends object, I = unknown> extends CsvEntity<
             this.byteBuffer.next()
             this.byteBuffer.next()
         }
+
+        this.bomChecked = true
     }
 
     protected parse(): T[] {
