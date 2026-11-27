@@ -902,4 +902,44 @@ describe('CSV parsing', () => {
             ])
         })
     })
+
+    describe('Header handling (#54)', () => {
+        it('keeps a __proto__ column as an own property', () => {
+            const [row] = Csv.parse('__proto__,b\n1,2\n') as any[]
+            expect(Object.keys(row)).toEqual(['__proto__', 'b'])
+            expect(
+                Object.getOwnPropertyDescriptor(row, '__proto__')?.value,
+            ).toBe('1')
+            expect(row.b).toBe('2')
+            // no prototype pollution
+            expect(({} as any).b).toBeUndefined()
+            expect(Object.getPrototypeOf(row)).toBe(Object.prototype)
+        })
+
+        it('keeps a __proto__ column when parsing asynchronously', async () => {
+            async function* gen() {
+                yield '__proto__,b\n1,2\n'
+            }
+            const [row] = (await Csv.parseAsync(gen())) as any[]
+            expect(
+                Object.getOwnPropertyDescriptor(row, '__proto__')?.value,
+            ).toBe('1')
+        })
+
+        it('uses the last column for duplicate header names (documented behaviour)', () => {
+            expect(Csv.parse('a,a\n1,2\n')).toEqual([{ a: '2' }])
+        })
+
+        it('converts Boolean shape fields case-insensitively, like readAs', () => {
+            const rows = Csv.parse('a\nTRUE\ntrue\nFalse\nyes\n', {
+                shape: { a: Boolean },
+            })
+            expect(rows).toEqual([
+                { a: true },
+                { a: true },
+                { a: false },
+                { a: false },
+            ])
+        })
+    })
 })

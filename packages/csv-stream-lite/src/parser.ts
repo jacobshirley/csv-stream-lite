@@ -26,6 +26,23 @@ const isLineEnd = (byte: number | null): boolean => {
 }
 
 /**
+ * Sets an own, enumerable property. Unlike plain assignment, this keeps a
+ * column named `__proto__` instead of hitting the prototype setter.
+ */
+function setOwnProperty(obj: any, key: string, value: unknown): void {
+    if (key === '__proto__') {
+        Object.defineProperty(obj, key, {
+            value,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+        })
+    } else {
+        obj[key] = value
+    }
+}
+
+/**
  * Options for configuring CSV entity parsing.
  */
 export interface CsvEntityOptions {
@@ -437,7 +454,10 @@ export class CsvCell extends CsvEntity<string> {
  * @typeParam O - The output type after optional transformation (defaults to T)
  */
 export interface CsvRowObjectOptions<T extends object, I = unknown> {
-    /** Headers for the CSV row */
+    /**
+     * Headers for the CSV row. If a name appears more than once, the last
+     * matching column wins (earlier columns with the same name are overwritten).
+     */
     headers: string[]
     /** Shape definition mapping headers to type transformers, or an array of header names */
     shape?: CsvObjectShape<T>
@@ -530,7 +550,7 @@ export class CsvRow<T extends object = object, I = unknown> extends CsvEntity<
                         ? `extra_cell_${i - headers.length + 1}`
                         : headers[i]
 
-                obj[header] = cell.read()
+                setOwnProperty(obj, header, cell.read())
             }
 
             i++
@@ -547,7 +567,7 @@ export class CsvRow<T extends object = object, I = unknown> extends CsvEntity<
                 )
             }
             const header = headers[i]
-            obj[header] = undefined
+            setOwnProperty(obj, header, undefined)
         }
 
         if (options.transform) {
@@ -558,7 +578,8 @@ export class CsvRow<T extends object = object, I = unknown> extends CsvEntity<
             const transformer = shape[transform as keyof T]
             if (obj[transform] !== undefined) {
                 if ((transformer as any) === Boolean) {
-                    obj[transform] = String(obj[transform]) === 'true'
+                    obj[transform] =
+                        String(obj[transform]).toLowerCase() === 'true'
                 } else {
                     obj[transform] = transformer(obj[transform])
                 }
