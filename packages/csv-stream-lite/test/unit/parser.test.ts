@@ -902,4 +902,53 @@ describe('CSV parsing', () => {
             ])
         })
     })
+
+    describe('Trailing empty fields (#43)', () => {
+        it('keeps a trailing empty cell at end of input', () => {
+            expect(new CsvRow('a,b,').read()).toEqual(['a', 'b', ''])
+            expect(new CsvRow('x,,').read()).toEqual(['x', '', ''])
+            expect(new CsvRow(',').read()).toEqual(['', ''])
+        })
+
+        it('keeps a trailing empty cell before a line ending', () => {
+            expect(new CsvRow('a,b,\nc').read()).toEqual(['a', 'b', ''])
+            expect(new CsvRow('a,b,\r\nc').read()).toEqual(['a', 'b', ''])
+        })
+
+        it('keeps trailing empty cells across rows in a Csv', () => {
+            const rows = Array.from(new Csv('a,b,\n1,2,\n3,4,'), (r) =>
+                r.read(),
+            )
+            expect(rows).toEqual([
+                ['a', 'b', ''],
+                ['1', '2', ''],
+                ['3', '4', ''],
+            ])
+        })
+
+        it('round-trips an empty last column through stringify', () => {
+            const objects = [{ name: 'Alice', age: '30', city: '' }]
+            const csv = [...Csv.stringify(objects)].join('')
+            expect(Csv.parse(csv)).toEqual(objects)
+        })
+
+        it('does not throw TooFewColumnsError for a trailing empty cell', () => {
+            expect(
+                Csv.parse('name,age,city\nAlice,30,\n', {
+                    strictColumns: true,
+                }),
+            ).toEqual([{ name: 'Alice', age: '30', city: '' }])
+        })
+
+        it('keeps trailing empty cells when parsing asynchronously', async () => {
+            const chunks = ['name,age,ci', 'ty\nAlice,30,', '\nBob,25,']
+            async function* gen() {
+                yield* chunks
+            }
+            expect(await Csv.parseAsync(gen())).toEqual([
+                { name: 'Alice', age: '30', city: '' },
+                { name: 'Bob', age: '25', city: '' },
+            ])
+        })
+    })
 })
