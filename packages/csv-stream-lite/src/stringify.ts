@@ -48,6 +48,8 @@ export class CsvStringify<T extends object = object, O extends object = T> {
     writeBom: boolean
     alwaysWriteHeaders: boolean
     transform?: (row: T) => O
+    /** Headers in effect for the current stream (explicit, or taken from the first record) */
+    private activeHeaders?: string[]
 
     /**
      * Creates a new CSV stringifier.
@@ -99,8 +101,12 @@ export class CsvStringify<T extends object = object, O extends object = T> {
             record = this.transform(record) as any
         }
 
-        const recordKeys = Object.keys(record)
-        const headers: string[] = this.headers ?? recordKeys
+        // Without explicit headers, the first record's keys define the columns
+        // for every record, so values are always written under their own header.
+        if (firstRecord) {
+            this.activeHeaders = this.headers ?? Object.keys(record)
+        }
+        const headers: string[] = this.activeHeaders ?? []
 
         if (firstRecord) {
             // Output header row
@@ -118,7 +124,7 @@ export class CsvStringify<T extends object = object, O extends object = T> {
 
         for (let i = 0; i < headers.length; i++) {
             const fieldStr = this.formatField(
-                String(record[recordKeys[i] as keyof typeof record] ?? ''),
+                String(record[headers[i] as keyof typeof record] ?? ''),
             )
             if (index > 0) {
                 yield this.delimiter
